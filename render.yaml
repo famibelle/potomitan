@@ -1,8 +1,8 @@
 services:
   - type: web
-    name: potomitan-dynamic
+    name: potomitan
     env: node
-    buildCommand: npm install && npm run build
+    buildCommand: NODE_ENV=development npm install && npx vite build
     startCommand: node server.cjs
     envVars:
       - key: NODE_ENV
