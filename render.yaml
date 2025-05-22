@@ -2,7 +2,7 @@ services:
   - type: web
     name: potomitan
     env: node
-    buildCommand: npx vite build
+    buildCommand: NODE_ENV=development npm install && npx vite build
     startCommand: node server.cjs
     envVars:
       - key: NODE_ENV
