@@ -25,7 +25,8 @@ const bodyParser = require('body-parser');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-const AUDIO_DIR = path.join(__dirname, 'public', 'audio');
+//const AUDIO_DIR = path.join(__dirname, 'public', 'audio');
+const AUDIO_DIR = path.join(__dirname, 'dist', 'audio')
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -59,7 +60,8 @@ app.get('/api/audio-files', async (req, res) => {
       return {
         id: latest.id || idx + 1,
         name: filename,
-        url: `/audio/${filename}`,
+        //url: `/audio/${filename}`,
+        src: `/audio/${filename}`,
         transcription: latest.transcription || '',
         rating: latest.rating || 0,
         history,
