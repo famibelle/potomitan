@@ -25,8 +25,7 @@ const bodyParser = require('body-parser');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-//const AUDIO_DIR = path.join(__dirname, 'public', 'audio');
-const AUDIO_DIR = path.join(__dirname, 'dist', 'audio')
+const AUDIO_DIR = path.join(__dirname, 'public', 'audio');
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -60,8 +59,7 @@ app.get('/api/audio-files', async (req, res) => {
       return {
         id: latest.id || idx + 1,
         name: filename,
-        //url: `/audio/${filename}`,
-        src: `/audio/${filename}`,
+        url: `/audio/${filename}`,
         transcription: latest.transcription || '',
         rating: latest.rating || 0,
         history,
@@ -70,8 +68,8 @@ app.get('/api/audio-files', async (req, res) => {
 
     res.json(files);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Erreur de récupération des fichiers' });
+    console.error('❌ Erreur /api/audio-files:', err);
+    return res.status(500).json({ error: 'Impossible de lister les fichiers audio' });
   }
 });
 
