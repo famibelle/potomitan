@@ -4,7 +4,7 @@ services:
     env: node
     plan: free
     # 1) Installe les dépendances et build le frontend Vue
-    buildCommand: npm install && npm run build
+    buildCommand: npx vite build
     # 2) Lance uniquement le server Express qui sert à la fois l’API et le dist/
     startCommand: node server.cjs
     envVars:
