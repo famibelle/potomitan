@@ -15,29 +15,33 @@ def convert_wav_to_mp3(input_dir, output_dir, bitrate="96k"):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    # Lister les fichiers wav
+    # Lister tous les fichiers wav
     wav_files = [f for f in os.listdir(input_dir) if f.endswith(".wav")]
 
-    # Parcourir tous les fichiers dans le répertoire d'entrée avec une barre de progression
+    # Parcourir tous les fichiers avec tqdm
     for filename in tqdm(wav_files, desc="Conversion WAV -> MP3"):
         wav_file = os.path.join(input_dir, filename)
+        print(f"Traitement du fichier : {filename}")  # Affichage du nom du fichier
+        if os.path.getsize(wav_file) == 0:
+            print(f"Fichier vide ignoré : {filename}")
+            continue
         try:
-            # Charger le fichier WAV
             audio = AudioSegment.from_wav(wav_file)
-
-            # Créer le nom de fichier MP3 de sortie
-            mp3_filename = os.path.splitext(filename)[0] + ".mp3"
-            mp3_file = os.path.join(output_dir, mp3_filename)
-
-            # Exporter en MP3
-            audio.export(mp3_file, format="mp3", bitrate=bitrate)
-            print(f"Converti {filename} en {mp3_filename}")
-
-            # Effacer le fichier WAV après conversion
-            os.remove(wav_file)
-            print(f"Effacé {filename}")
         except Exception as e:
-            print(f"Erreur lors du traitement de {filename} : {e}")
+            print(f"Erreur lors de la lecture de {filename} : {e}")
+            continue
+
+        # Créer le nom de fichier MP3 de sortie
+        mp3_filename = os.path.splitext(filename)[0] + ".mp3"
+        mp3_file = os.path.join(output_dir, mp3_filename)
+
+        # Exporter en MP3
+        audio.export(mp3_file, format="mp3", bitrate=bitrate)
+        print(f"Converti {filename} en {mp3_filename}")
+
+        # Effacer le fichier WAV après conversion
+        os.remove(wav_file)
+        print(f"Effacé {filename}")
 
 if __name__ == "__main__":
     # Configurer le parseur d'arguments
