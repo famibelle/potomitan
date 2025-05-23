@@ -4,7 +4,7 @@ const { Pool } = require('pg');
 
 // Charger les variables d'environnement uniquement en local
 if (process.env.NODE_ENV !== 'production') {
-  require('dotenv').config();
+  require('dotenv').config({ override: true });
 }
 
 // Construire un chemin absolu compatible Windows/Linux
@@ -41,10 +41,8 @@ async function updateBatch() {
     try {
       await pool.query(
         `INSERT INTO transcriptions (filename, transcription, timestamp, author)
-         VALUES ($1, $2, $3, $4)
-         ON CONFLICT (filename, transcription)
-         DO NOTHING;`,
-        [name, transcription, timestamp, author || 'whisper-large-v3']
+        VALUES ($1, $2, $3, $4);`,
+        [name, transcription, timestamp, author]
       );
 
       console.log(`✅ Donnée insérée ou ignorée (doublon) : ${name}`);
