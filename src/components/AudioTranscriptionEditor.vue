@@ -16,6 +16,7 @@
     <div v-for="file in visibleFiles" :key="file.id" class="row">
       <div class="column audio-col">
         <p class="filename">{{ file.name }}</p>
+
         <div class="feedback-buttons">
           <button aria-disabled="false" type="button" class="feedback-button" aria-label="Like" data-state="closed">
             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-thumbs-up">
@@ -30,8 +31,6 @@
             </svg>
           </button>
         </div>
-      </div>
-    </div>
 
         <audio
           :ref="el => audioRefs[file.id] = el"
@@ -42,14 +41,6 @@
         ></audio>
       </div>
       <div class="column transcription-col">
-
-        <textarea
-          v-model="file.transcription"
-          :class="{ empty: file.transcription === '' }"
-          :ref="el => textareas[file.id] = el"
-          @focus="currentFocusedId = file.id"
-          placeholder="Veuillez entrer la transcription ici..."
-        ></textarea>
         <!-- Système de notation par étoiles -->
         <div class="star-rating">
           <span
@@ -63,6 +54,13 @@
           </span>
         </div>
 
+        <textarea
+          v-model="file.transcription"
+          :class="{ empty: file.transcription === '' }"
+          :ref="el => textareas[file.id] = el"
+          @focus="currentFocusedId = file.id"
+          placeholder="Veuillez entrer la transcription ici..."
+        ></textarea>
         <button @click="validate(file.id)" class="edit-btn">Valider</button>
 
         <details v-if="file.history && file.history.length > 1" class="history-log">
