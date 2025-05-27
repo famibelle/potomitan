@@ -9,7 +9,8 @@
       <div class="navigation-controls" v-if="visibleFiles.length">
         <button @click="goToPrevious" :disabled="!hasPrevious" class="nav-btn">←</button>
         <span class="nav-status">Segment {{ currentIndexDisplay + 1 }} / {{ audioFiles.length }}</span>
-        <button @click="goToNext" :disabled="!hasNext" class="nav-btn">→</button>
+        <button @click="goToNext" :disabled="!hasNext" class="nav-btn">→</button><button id="shuffleButton">🔀</button>
+
       </div>
     </div>
 
