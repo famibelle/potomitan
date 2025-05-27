@@ -234,6 +234,12 @@ audio.audio-player {
   color: var(--text-color);
 }
 
+.feedback-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem; /* Espace entre les boutons */
+}
+
 .feedback-button {
   display: flex;
   align-items: center;
