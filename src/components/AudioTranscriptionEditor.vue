@@ -50,9 +50,10 @@
             :class="{ filled: n <= file.rating }"
             @click="onRatingSelected(file, n)"
           >
-            ★
+            {{ n <= file.rating ? '★' : '☆' }}
           </span>
         </div>
+
 
         <textarea
           v-model="file.transcription"
