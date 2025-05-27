@@ -234,6 +234,16 @@ audio.audio-player {
   color: var(--text-color);
 }
 
+.file-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem; /* Espace entre le nom du fichier et les boutons */
+}
+
+.filename {
+  margin: 0; /* Supprime la marge par défaut du paragraphe */
+}
+
 .feedback-buttons {
   display: flex;
   align-items: center;

@@ -14,9 +14,8 @@
     </div>
 
     <div v-for="file in visibleFiles" :key="file.id" class="row">
-      <div class="column audio-col">
+      <div class="file-info">
         <p class="filename">{{ file.name }}</p>
-
         <div class="feedback-buttons">
           <button aria-disabled="false" type="button" class="feedback-button" aria-label="Like" data-state="closed">
             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-thumbs-up">
