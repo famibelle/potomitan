@@ -302,3 +302,12 @@ audio.audio-player {
 .feedback-button:active svg {
   fill: currentColor;
 }
+
+.star-rating {
+  font-size: 1.5rem;
+  color: #ccc; /* Couleur des étoiles vides */
+}
+
+.star.filled {
+  color: gold; /* Couleur des étoiles pleines */
+}
