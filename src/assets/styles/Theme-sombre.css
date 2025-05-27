@@ -131,6 +131,7 @@ audio.audio-player {
 }
 
 .transcription-col textarea {
+  font-family: 'Roboto', sans-serif; /* Utilisez la police de votre choix */
   background-color: var(--background-color);
   color: var(--text-color);
   border-color: var(--border-color);
