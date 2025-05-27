@@ -7,9 +7,9 @@
 
       <!-- Navigation rapide -->
       <div class="navigation-controls" v-if="visibleFiles.length">
-        <button @click="goToPrevious" :disabled="!hasPrevious" class="nav-btn">← Précédent</button>
+        <button @click="goToPrevious" :disabled="!hasPrevious" class="nav-btn">←</button>
         <span class="nav-status">Segment {{ currentIndexDisplay + 1 }} / {{ audioFiles.length }}</span>
-        <button @click="goToNext" :disabled="!hasNext" class="nav-btn">Suivant →</button>
+        <button @click="goToNext" :disabled="!hasNext" class="nav-btn">→</button>
       </div>
     </div>
 
