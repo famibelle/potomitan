@@ -9,8 +9,8 @@
       <div class="navigation-controls" v-if="visibleFiles.length">
         <button @click="goToPrevious" :disabled="!hasPrevious" class="nav-btn">←</button>
         <span class="nav-status">Segment {{ currentIndexDisplay + 1 }} / {{ audioFiles.length }}</span>
-        <button @click="goToNext" :disabled="!hasNext" class="nav-btn">→</button><button id="shuffleButton">🔀</button>
-
+        <button @click="goToNext" :disabled="!hasNext" class="nav-btn">→</button>
+        <button @click="shuffleFiles" class="nav-btn">🔀</button>
       </div>
     </div>
 
@@ -129,6 +129,15 @@ function handleScroll() {
   if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 100) {
     loadMore()
   }
+}
+
+function shuffleFiles() {
+  // Mélanger les fichiers
+  audioFiles.value.sort(() => Math.random() - 0.5)
+  // Réinitialiser les fichiers visibles
+  visibleFiles.value = []
+  currentIndex = 0
+  loadMore()
 }
 
 async function validate(id) {
