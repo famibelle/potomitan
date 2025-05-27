@@ -13,7 +13,8 @@ const pool = new Pool({
 async function alterTable() {
   try {
     //const sql = `ALTER TABLE transcriptions   ADD COLUMN rating SMALLINT     CHECK (rating BETWEEN 0 AND 5)    DEFAULT 0;`
-    const sql = `ALTER TABLE transcriptions ADD COLUMN author TEXT DEFAULT 'whisper-large-v3';`;
+    //const sql = `ALTER TABLE transcriptions ADD COLUMN author TEXT DEFAULT 'whisper-large-v3';`;
+    const sql = `ALTER TABLE transcriptions ADD COLUMN likes INTEGER DEFAULT 0, ADD COLUMN dislikes INTEGER DEFAULT 0;`
     await pool.query(sql);
     console.log('✅ Colonne ajoutée avec succès.');
   } catch (err) {

@@ -132,6 +132,35 @@ app.post('/api/save-rating/:id', async (req, res) => {
   }
 });
 
+app.post('/api/like', async (req, res) => {
+  const { fileId } = req.body;
+  try {
+    const result = await pool.query(
+      'UPDATE transcriptions SET likes = likes + 1 WHERE id = $1 RETURNING *',
+      [fileId]
+    );
+    res.json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/dislike', async (req, res) => {
+  const { fileId } = req.body;
+  try {
+    const result = await pool.query(
+      'UPDATE transcriptions SET dislikes = dislikes + 1 WHERE id = $1 RETURNING *',
+      [fileId]
+    );
+    res.json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+
 // Sert d’abord les fichiers statiques audio
 app.use('/audio', express.static(AUDIO_DIR));
 
