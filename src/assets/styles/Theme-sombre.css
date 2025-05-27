@@ -96,7 +96,7 @@ html, body, #app {
   flex-direction: column;
   gap: 1.5rem;
   width: 100%;
-  max-width: 900px;
+  max-width: 1200px;
   box-sizing: border-box;
   align-items: stretch;
 }
