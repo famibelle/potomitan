@@ -42,6 +42,14 @@
         ></audio>
       </div>
       <div class="column transcription-col">
+
+        <textarea
+          v-model="file.transcription"
+          :class="{ empty: file.transcription === '' }"
+          :ref="el => textareas[file.id] = el"
+          @focus="currentFocusedId = file.id"
+          placeholder="Veuillez entrer la transcription ici..."
+        ></textarea>
         <!-- Système de notation par étoiles -->
         <div class="star-rating">
           <span
@@ -55,13 +63,6 @@
           </span>
         </div>
 
-        <textarea
-          v-model="file.transcription"
-          :class="{ empty: file.transcription === '' }"
-          :ref="el => textareas[file.id] = el"
-          @focus="currentFocusedId = file.id"
-          placeholder="Veuillez entrer la transcription ici..."
-        ></textarea>
         <button @click="validate(file.id)" class="edit-btn">Valider</button>
 
         <details v-if="file.history && file.history.length > 1" class="history-log">
