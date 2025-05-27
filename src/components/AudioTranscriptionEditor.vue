@@ -50,7 +50,7 @@
             :class="{ filled: n <= file.rating }"
             @click="onRatingSelected(file, n)"
           >
-            ★
+            ☆
           </span>
         </div>
 
