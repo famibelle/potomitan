@@ -296,4 +296,9 @@ audio.audio-player {
   height: 1rem;
   width: 1rem;
   flex-shrink: 0;
+  transition: fill 2s;
+}
+
+.feedback-button:active svg {
+  fill: currentColor;
 }
