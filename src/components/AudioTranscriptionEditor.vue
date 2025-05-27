@@ -30,15 +30,16 @@
             </svg>
           </button>
         </div>
-
-        <audio
-          :ref="el => audioRefs[file.id] = el"
-          :src="file.url"
-          controls
-          class="audio-player"
-          @play="currentFocusedId = file.id"
-        ></audio>
       </div>
+
+      <audio
+        :ref="el => audioRefs[file.id] = el"
+        :src="file.url"
+        controls
+        class="audio-player"
+        @play="currentFocusedId = file.id"
+      ></audio>
+      
       <div class="column transcription-col">
         <!-- Système de notation par étoiles -->
         <div class="star-rating">
