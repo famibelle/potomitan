@@ -14,9 +14,15 @@ async function alterTable() {
   try {
     //const sql = `ALTER TABLE transcriptions   ADD COLUMN rating SMALLINT     CHECK (rating BETWEEN 0 AND 5)    DEFAULT 0;`
     //const sql = `ALTER TABLE transcriptions ADD COLUMN author TEXT DEFAULT 'whisper-large-v3';`;
-    const sql = `ALTER TABLE transcriptions ADD COLUMN likes INTEGER DEFAULT 0, ADD COLUMN dislikes INTEGER DEFAULT 0;`
-    await pool.query(sql);
-    console.log('✅ Colonne ajoutée avec succès.');
+    //Ajout de colonnes pour les likes et les dislikes
+    //const sql = `ALTER TABLE transcriptions ADD COLUMN likes INTEGER DEFAULT 0, ADD COLUMN dislikes INTEGER DEFAULT 0;`
+    //await pool.query(sql);
+    //console.log('✅ Colonnes likes et dislikes ajoutées avec succès.');
+
+    // Ajout contrainte UNIQUE sur le champ transcription
+    const sqlUnique = `ALTER TABLE transcriptions ADD CONSTRAINT unique_transcription UNIQUE (transcription);`;
+    await pool.query(sqlUnique);
+    console.log('✅ Contrainte UNIQUE ajoutée sur le champ transcription.');
   } catch (err) {
     console.error('❌ Erreur :', err.message);
   } finally {
