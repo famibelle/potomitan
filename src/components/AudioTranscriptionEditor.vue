@@ -154,8 +154,19 @@ function sortByDislikes() {
   loadMore();
 }
 
+const sortState = ref({ field: null, asc: true });
+
 function sortByStars() {
-  audioFiles.value.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
+  if (sortState.value.field === 'rating') {
+    sortState.value.asc = !sortState.value.asc;
+  } else {
+    sortState.value.field = 'rating';
+    sortState.value.asc = false;
+  }
+  audioFiles.value.sort((a, b) => {
+    const diff = (b.rating ?? 0) - (a.rating ?? 0);
+    return sortState.value.asc ? -diff : diff;
+  });
   visibleFiles.value = [];
   currentIndex = 0;
   loadMore();
