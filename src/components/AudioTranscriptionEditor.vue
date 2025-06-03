@@ -3,7 +3,7 @@
     <div class="sticky-header">
       <h2 class="title">Fichiers Audio & Transcriptions</h2>
 
-      <div v-if="successMessage" class="toast">{{ successMessage }}</div>
+      <div v-if="successMessage" class="toast toast-overlay">{{ successMessage }}</div>
 
       <!-- Navigation rapide -->
       <div class="navigation-controls" v-if="visibleFiles.length">
@@ -256,6 +256,21 @@ onBeforeUnmount(() => {
 .star-rating { display: flex; align-items: center; margin-bottom: 0.5rem; }
 .star { font-size: 24px; cursor: pointer; color: #ccc; margin-right: 4px; }
 .star.filled { color: gold; }
-.toast { background: #4caf50; color: white; padding: 0.5rem 1rem; border-radius: 4px; animation: fade-in-out 2s ease-in-out; position: sticky; top: 4rem; }
+.toast {
+  background: #4caf50;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  animation: fade-in-out 2s ease-in-out;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  min-width: 250px;
+  text-align: center;
+}
+.sticky-header {
+  position: relative;
+}
 @keyframes fade-in-out { 0%,100% { opacity: 0; } 10%,90% { opacity: 1; } }
 </style>
