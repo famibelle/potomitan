@@ -13,6 +13,7 @@
         <button @click="shuffleFiles" class="nav-btn">🔀</button>
         <button @click="sortByLikes" class="nav-btn">👍🏿</button>
         <button @click="sortByDislikes" class="nav-btn">👎🏿</button>
+        <button @click="sortByStars" class="nav-btn">★</button>
       </div>
     </div>
 
@@ -148,6 +149,13 @@ function sortByLikes() {
 
 function sortByDislikes() {
   audioFiles.value.sort((a, b) => (b.dislikes ?? 0) - (a.dislikes ?? 0));
+  visibleFiles.value = [];
+  currentIndex = 0;
+  loadMore();
+}
+
+function sortByStars() {
+  audioFiles.value.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
   visibleFiles.value = [];
   currentIndex = 0;
   loadMore();
