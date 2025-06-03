@@ -44,7 +44,7 @@
       <div class="column transcription-col">
         <!-- Système de notation par étoiles -->
         <div class="star-rating">
-          <span class="rating-label">Noter la transcription de 1 à 5 étoiles:</span>
+          <span class="rating-label">Notez la transcription: </span>
           <span
             v-for="n in 5"
             :key="n"
