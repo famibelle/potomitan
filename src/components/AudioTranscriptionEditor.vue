@@ -11,6 +11,7 @@
         <span class="nav-status">Segment {{ currentIndexDisplay + 1 }} / {{ audioFiles.length }}</span>
         <button @click="goToNext" :disabled="!hasNext" class="nav-btn">→</button>
         <button @click="shuffleFiles" class="nav-btn">🔀</button>
+        <button @click="sortByLikes" class="nav-btn">👍🏿</button>
       </div>
     </div>
 
@@ -137,6 +138,13 @@ function shuffleFiles() {
   loadMore()
 }
 
+function sortByLikes() {
+  audioFiles.value.sort((a, b) => (b.likes ?? 0) - (a.likes ?? 0));
+  visibleFiles.value = [];
+  currentIndex = 0;
+  loadMore();
+}
+
 async function validate(id) {
   const file = visibleFiles.value.find(f => f.id === id)
   try {
@@ -202,12 +210,10 @@ async function onLike(file) {
       body: JSON.stringify({ fileId: file.id })
     })
     if (!res.ok) throw new Error('Erreur lors du like')
-    successMessage.value = `👍 Like ajouté !`
-    setTimeout(() => (successMessage.value = ''), 1500)
+    // Pas de toaster ici
   } catch (err) {
     file.likes = (file.likes ?? 1) - 1
-    successMessage.value = `❌ ${err.message}`
-    setTimeout(() => (successMessage.value = ''), 2000)
+    // Pas de toaster ici
   }
 }
 
@@ -220,12 +226,10 @@ async function onDislike(file) {
       body: JSON.stringify({ fileId: file.id })
     })
     if (!res.ok) throw new Error('Erreur lors du dislike')
-    successMessage.value = `👎 Dislike ajouté !`
-    setTimeout(() => (successMessage.value = ''), 1500)
+    // Pas de toaster ici
   } catch (err) {
     file.dislikes = (file.dislikes ?? 1) - 1
-    successMessage.value = `❌ ${err.message}`
-    setTimeout(() => (successMessage.value = ''), 2000)
+    // Pas de toaster ici
   }
 }
 
