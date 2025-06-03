@@ -107,6 +107,9 @@ app.post('/api/save-transcription', async (req, res) => {
     res.json({ status: 'ok' });
   } catch (err) {
     console.error(err);
+    if (err.code === '23505') { // violation contrainte UNIQUE
+      return res.status(409).json({ error: 'Cette transcription a déjà été proposée' });
+    }
     res.status(500).json({ error: 'Erreur lors de l\'enregistrement' });
   }
 });

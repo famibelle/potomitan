@@ -144,14 +144,20 @@ async function validate(id) {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: file.name, transcription: file.transcription })
     })
-    if (!res.ok) throw new Error('Erreur lors de la sauvegarde.')
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      if (res.status === 409 && data.error && data.error.includes('déjà été proposée')) {
+        throw new Error('Cette transcription a déjà été proposée')
+      }
+      throw new Error(data.error || 'Erreur lors de la sauvegarde.')
+    }
     if (!file.history) file.history = []
     file.history.push({ transcription: file.transcription, timestamp: new Date().toISOString() })
     successMessage.value = `✅ Transcription « ${file.name} » validée !`
     setTimeout(() => (successMessage.value = ''), 3000)
   } catch (err) {
     console.error(err)
-    successMessage.value = `❌ Erreur : ${err.message}`
+    successMessage.value = `❌ ${err.message}`
     setTimeout(() => (successMessage.value = ''), 4000)
   }
 }
