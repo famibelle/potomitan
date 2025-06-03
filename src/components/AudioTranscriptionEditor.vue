@@ -236,6 +236,24 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+.app-container {
+  background: #f7f7f7;
+  min-height: 100vh;
+  /* padding-top supprimé pour éviter le décalage */
+}
+.sticky-header {
+  position: sticky;
+  top: 0;
+  background: #fff;
+  z-index: 100;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  padding: 2rem 2rem 1rem 2rem;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
 .navigation-controls {
   display: flex; justify-content: center; align-items: center; gap: 1rem; margin-bottom: 1rem;
 }
@@ -260,20 +278,17 @@ onBeforeUnmount(() => {
   padding: 0.5rem 1rem;
   border-radius: 4px;
   animation: fade-in-out 2s ease-in-out;
-  position: fixed;
-  top: 1.5rem;
+  position: absolute;
+  top: 0.5rem;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 100;
+  z-index: 200;
   min-width: 250px;
   text-align: center;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
-.sticky-header {
-  position: sticky;
-  top: 0;
-  background: #fff;
-  z-index: 5;
-}
 @keyframes fade-in-out { 0%,100% { opacity: 0; } 10%,90% { opacity: 1; } }
+body {
+  background: #222;
+}
 </style>
