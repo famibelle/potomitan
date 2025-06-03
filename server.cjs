@@ -40,16 +40,16 @@ app.get('/api/audio-files', async (req, res) => {
 
     // 2) Récupérer TOUT l’historique depuis la BDD
     const result = await pool.query(
-      `SELECT id, filename, transcription, timestamp, rating
+      `SELECT id, filename, transcription, timestamp, rating, likes, dislikes
        FROM transcriptions
        ORDER BY timestamp ASC`
     );
 
     // 3) Regrouper ces entrées par fichier
     const historyMap = {};
-    result.rows.forEach(({ id, filename, transcription, timestamp, rating }) => {
+    result.rows.forEach(({ id, filename, transcription, timestamp, rating, likes, dislikes }) => {
       if (!historyMap[filename]) historyMap[filename] = [];
-      historyMap[filename].push({ id, transcription, timestamp, rating });
+      historyMap[filename].push({ id, transcription, timestamp, rating, likes, dislikes });
     });
 
     // 4) Construire le JSON final : un objet par fichier, même sans historique
@@ -62,6 +62,8 @@ app.get('/api/audio-files', async (req, res) => {
         url: `/audio/${filename}`,
         transcription: latest.transcription || '',
         rating: latest.rating || 0,
+        likes: latest.likes || 0,
+        dislikes: latest.dislikes || 0,
         history,
       };
     });

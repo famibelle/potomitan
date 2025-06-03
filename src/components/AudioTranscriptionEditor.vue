@@ -195,8 +195,10 @@ function handleKeydown(e) {
 async function onLike(file) {
   file.likes = (file.likes ?? 0) + 1
   try {
-    const res = await fetch(`/api/like/${file.id}`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }
+    const res = await fetch('/api/like', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fileId: file.id })
     })
     if (!res.ok) throw new Error('Erreur lors du like')
     successMessage.value = `👍 Like ajouté !`
@@ -211,8 +213,10 @@ async function onLike(file) {
 async function onDislike(file) {
   file.dislikes = (file.dislikes ?? 0) + 1
   try {
-    const res = await fetch(`/api/dislike/${file.id}`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }
+    const res = await fetch('/api/dislike', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fileId: file.id })
     })
     if (!res.ok) throw new Error('Erreur lors du dislike')
     successMessage.value = `👎 Dislike ajouté !`
