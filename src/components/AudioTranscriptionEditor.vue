@@ -2,7 +2,9 @@
   <div class="app-container">
     <div class="sticky-header">
       <h2 class="title">Fichiers Audio & Transcriptions</h2>
+
       <div v-if="successMessage" class="toast">{{ successMessage }}</div>
+
       <!-- Navigation rapide -->
       <div class="navigation-controls" v-if="visibleFiles.length">
         <button @click="goToPrevious" :disabled="!hasPrevious" class="nav-btn">←</button>
@@ -236,142 +238,24 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-/* Fond général sombre */
-.app-container {
-  background: #181a1b;
-  min-height: 100vh;
-}
-
-/* Sticky header toujours visible, largeur totale, fond sombre, pas de border-radius */
-.sticky-header {
-  position: sticky;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  background: #23272a;
-  z-index: 120;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.18);
-  padding: 2rem 2rem 1rem 2rem;
-  margin-bottom: 2rem;
-  margin-left: calc(50% - 50vw);
-  margin-right: calc(50% - 50vw);
-  border-radius: 0;
-  max-width: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.title {
-  color: #f3f3f3;
-  font-weight: 700;
-  font-size: 2rem;
-  text-align: center;
-  margin-bottom: 0.5rem;
-}
-
 .navigation-controls {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  display: flex; justify-content: center; align-items: center; gap: 1rem; margin-bottom: 1rem;
 }
-
 .nav-btn {
-  background-color: #10b981;
-  border: none;
-  padding: 0.5rem 1rem;
-  color: white;
-  cursor: pointer;
-  border-radius: 4px;
-  font-weight: 500;
+  background-color: var(--success-color); border: none; padding: 0.5rem 1rem; color: white; cursor: pointer; border-radius: 4px; font-weight: 500;
 }
-
 .nav-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-.nav-status { color: #e0e0e0; font-weight: 500; }
-
+.nav-status { color: var(--text-color); font-weight: 500; }
 .audio-player { width: 100%; margin-top: 0.5rem; }
-
-.row {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 2rem;
-  background: rgba(255,255,255,0.08);
-  border-radius: 18px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
-  padding: 1.5rem 1.5rem 1rem 1.5rem;
-  backdrop-filter: blur(2px);
-}
-
-.file-info .filename {
-  color: #f3f3f3;
-  font-weight: 600;
-}
-
-.feedback-buttons {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: #f3f3f3;
-  font-size: 1.2rem;
-}
-
-.feedback-button {
-  background: transparent;
-  border: none;
-  color: #f3f3f3;
-  font-size: 1.3rem;
-  cursor: pointer;
-  padding: 0 0.3rem;
-  transition: color 0.2s;
-}
-
-.feedback-button:hover {
-  color: #10b981;
-}
-
-.feedback-count {
-  margin-left: 0.2rem;
-  font-size: 1rem;
-  color: #e0e0e0;
-}
-
-.transcription-col textarea {
-  width: 100%; min-height: 100px; padding: 0.5rem; border: 1px solid #333; border-radius: 4px; background: #23272a; color: #f3f3f3;
-}
-
-.edit-btn { align-self: start; background: #10b981; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; }
-
+.row { display: flex; gap: 1rem; margin-bottom: 2rem; }
+.audio-col { flex: 1; }
+.transcription-col { flex: 2; display: flex; flex-direction: column; gap: 0.5rem; }
+.transcription-col textarea { width: 100%; min-height: 100px; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; }
+.edit-btn { align-self: start; background: var(--btn-bg-color); color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; }
 .history-log { margin-top: 0.5rem; }
-
 .star-rating { display: flex; align-items: center; margin-bottom: 0.5rem; }
-
 .star { font-size: 24px; cursor: pointer; color: #ccc; margin-right: 4px; }
-
 .star.filled { color: gold; }
-
-/* Toaster : position fixed sous le header, centré */
-.toast {
-  background: #10b981;
-  color: white;
-  padding: 0.5rem 1.2rem;
-  border-radius: 6px;
-  animation: fade-in-out 2s ease-in-out;
-  position: fixed;
-  top: 4.5rem;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 2000;
-  min-width: 250px;
-  text-align: center;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
-}
-
+.toast { background: #4caf50; color: white; padding: 0.5rem 1rem; border-radius: 4px; animation: fade-in-out 2s ease-in-out; position: sticky; top: 4rem; }
 @keyframes fade-in-out { 0%,100% { opacity: 0; } 10%,90% { opacity: 1; } }
-
-body {
-  background: #181a1b;
-}
 </style>
