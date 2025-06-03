@@ -2,9 +2,7 @@
   <div class="app-container">
     <div class="sticky-header">
       <h2 class="title">Fichiers Audio & Transcriptions</h2>
-
-      <div v-if="successMessage" class="toast toast-overlay">{{ successMessage }}</div>
-
+      <div v-if="successMessage" class="toast">{{ successMessage }}</div>
       <!-- Navigation rapide -->
       <div class="navigation-controls" v-if="visibleFiles.length">
         <button @click="goToPrevious" :disabled="!hasPrevious" class="nav-btn">←</button>
@@ -262,15 +260,20 @@ onBeforeUnmount(() => {
   padding: 0.5rem 1rem;
   border-radius: 4px;
   animation: fade-in-out 2s ease-in-out;
-  position: absolute;
+  position: fixed;
+  top: 1.5rem;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 10;
+  z-index: 100;
   min-width: 250px;
   text-align: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 .sticky-header {
-  position: relative;
+  position: sticky;
+  top: 0;
+  background: #fff;
+  z-index: 5;
 }
 @keyframes fade-in-out { 0%,100% { opacity: 0; } 10%,90% { opacity: 1; } }
 </style>
