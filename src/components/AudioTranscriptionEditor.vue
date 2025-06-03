@@ -44,7 +44,7 @@
       <div class="column transcription-col">
         <!-- Système de notation par étoiles -->
         <div class="star-rating">
-          <span class="rating-label">Noter la transcription de 1 à 5 étoiles&nbsp;:</span>
+          <span class="rating-label">Noter la transcription de 1 à 5 étoiles:</span>
           <span
             v-for="n in 5"
             :key="n"
@@ -298,6 +298,10 @@ onBeforeUnmount(() => {
 .toast { background: #4caf50; color: white; padding: 0.5rem 1rem; border-radius: 4px; animation: fade-in-out 2s ease-in-out; position: sticky; top: 4rem; }
 .history-entry {
   text-align: left;
+}
+.filename, .rating-label {
+  font-size: 1.1rem;
+  font-weight: 500;
 }
 @keyframes fade-in-out { 0%,100% { opacity: 0; } 10%,90% { opacity: 1; } }
 </style>
