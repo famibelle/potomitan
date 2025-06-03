@@ -263,5 +263,8 @@ onBeforeUnmount(() => {
 .star { font-size: 24px; cursor: pointer; color: #ccc; margin-right: 4px; }
 .star.filled { color: gold; }
 .toast { background: #4caf50; color: white; padding: 0.5rem 1rem; border-radius: 4px; animation: fade-in-out 2s ease-in-out; position: sticky; top: 4rem; }
+.history-entry {
+  text-align: left;
+}
 @keyframes fade-in-out { 0%,100% { opacity: 0; } 10%,90% { opacity: 1; } }
 </style>
