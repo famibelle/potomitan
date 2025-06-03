@@ -21,12 +21,12 @@
       <div class="file-info">
         <p class="filename">{{ file.name }}</p>
         <div class="feedback-buttons">
-          <button aria-disabled="false" type="button" class="feedback-button" aria-label="Like" data-state="closed" @click="onLike(file)">
+          <button aria-disabled="false" type="button" class="feedback-button" aria-label="Like" data-state="closed" @click="onLike(file)" title="J'aime ce segment !">
             👍🏿
             <span class="feedback-count">{{ file.likes ?? 0 }}</span>
           </button>
           |
-          <button aria-disabled="false" type="button" class="feedback-button" aria-label="Dislike" data-state="closed" @click="onDislike(file)">
+          <button aria-disabled="false" type="button" class="feedback-button" aria-label="Dislike" data-state="closed" @click="onDislike(file)" title="Je n'aime pas ce segment">
             👎🏿
             <span class="feedback-count">{{ file.dislikes ?? 0 }}</span>
           </button>
@@ -44,12 +44,14 @@
       <div class="column transcription-col">
         <!-- Système de notation par étoiles -->
         <div class="star-rating">
+          <span class="rating-label">Noter la transcription de 1 à 5 étoiles&nbsp;:</span>
           <span
             v-for="n in 5"
             :key="n"
             class="star"
             :class="{ filled: n <= file.rating }"
             @click="onRatingSelected(file, n)"
+            :title="`Donner ${n} étoile${n > 1 ? 's' : ''}`"
           >
             {{ n <= file.rating ? '★' : '☆' }}
           </span>
