@@ -25,6 +25,7 @@
             </svg>
             <span class="feedback-count">{{ file.likes ?? 0 }}</span>
           </button>
+          <span class="feedback-separator">|</span>
           <button aria-disabled="false" type="button" class="feedback-button" aria-label="Dislike" data-state="closed" @click="onDislike(file)">
             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-thumbs-down">
               <path d="M17 14V2"></path>
@@ -263,4 +264,11 @@ onBeforeUnmount(() => {
 .star.filled { color: gold; }
 .toast { background: #4caf50; color: white; padding: 0.5rem 1rem; border-radius: 4px; animation: fade-in-out 2s ease-in-out; position: sticky; top: 4rem; }
 @keyframes fade-in-out { 0%,100% { opacity: 0; } 10%,90% { opacity: 1; } }
+.feedback-separator {
+  display: inline-block;
+  width: 1px;
+  height: 24px;
+  background-color: #ccc;
+  margin: 0 0.5rem;
+}
 </style>
