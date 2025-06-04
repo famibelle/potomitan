@@ -12,15 +12,11 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 # Affiche le device sélectionné
 print(f"Using device: {device}")
 
-OUTPUT_FILE = "transcription_batch.json"
-
-model = whisper.load_model("large-v3")
-
-def main(audio_dir, start_datetime=None, end_datetime=None):
+def main(audio_dir, start_datetime=None, end_datetime=None, output_file="transcription_batch.json"):
     try:
         # Charger les transcriptions existantes si elles existent
-        if os.path.exists(OUTPUT_FILE):
-            with open(OUTPUT_FILE, "r", encoding="utf-8") as f:
+        if os.path.exists(output_file):
+            with open(output_file, "r", encoding="utf-8") as f:
                 results = json.load(f)
         else:
             results = []
@@ -49,7 +45,7 @@ def main(audio_dir, start_datetime=None, end_datetime=None):
                         results.append(entry)
 
                         # Sauvegarder immédiatement après chaque transcription
-                        with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+                        with open(output_file, "w", encoding="utf-8") as f:
                             json.dump(results, f, ensure_ascii=False, indent=2)
 
                         print(f"✅ Fichier traité : {filename}")
@@ -58,7 +54,7 @@ def main(audio_dir, start_datetime=None, end_datetime=None):
                     except Exception as e:
                         print(f"❌ Erreur pour {filename} : {e}")
 
-        print("\n📄 Transcriptions sauvegardées dans :", OUTPUT_FILE)
+        print("\n📄 Transcriptions sauvegardées dans :", output_file)
 
     except Exception as e:
         print(f"❌ Une erreur est survenue lors de l'exécution du script : {e}")
@@ -69,12 +65,14 @@ if __name__ == "__main__":
         parser.add_argument('--audio_dir', type=str, default="public/audio", help='Directory containing audio files to transcribe')
         parser.add_argument('--start_datetime', type=str, help='Start datetime of files to transcribe (YYYY-MM-DD HH:MM:SS)')
         parser.add_argument('--end_datetime', type=str, help='End datetime of files to transcribe (YYYY-MM-DD HH:MM:SS)')
+        parser.add_argument('--output_file', type=str, default="transcription_batch.json", help='Nom du fichier JSON de sortie pour les transcriptions')
 
         args = parser.parse_args()
 
         start_datetime = datetime.strptime(args.start_datetime, '%Y-%m-%d %H:%M:%S') if args.start_datetime else None
         end_datetime = datetime.strptime(args.end_datetime, '%Y-%m-%d %H:%M:%S') if args.end_datetime else None
 
-        main(args.audio_dir, start_datetime, end_datetime)
+        model = whisper.load_model("large-v3")
+        main(args.audio_dir, start_datetime, end_datetime, args.output_file)
     except Exception as e:
         print(f"❌ Une erreur est survenue lors de l'analyse des arguments : {e}")
