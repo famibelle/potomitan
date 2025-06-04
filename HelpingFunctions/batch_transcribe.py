@@ -5,6 +5,8 @@ from datetime import datetime, time
 from tqdm import tqdm
 import argparse
 import torch
+import mutagen
+from mutagen.id3 import ID3, USLT, ID3NoHeaderError
 
 # Vérifie si CUDA est disponible
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -34,15 +36,28 @@ def main(audio_dir, start_datetime=None, end_datetime=None, output_file="transcr
                     print(f"🔊 Transcription de : {filename}")
                     try:
                         result = model.transcribe(filepath, language="ht")
-
+                        transcription_text = result["text"]
                         entry = {
                             "name": filename,
-                            "transcription": result["text"],
+                            "transcription": transcription_text,
                             "author": "whisper-large-v3",
                             "timestamp": datetime.utcnow().isoformat()
                         }
-
                         results.append(entry)
+
+                        # Si MP3, écrire la transcription dans les tags ID3 (lyrics)
+                        if filename.endswith(".mp3"):
+                            try:
+                                try:
+                                    tags = ID3(filepath)
+                                except ID3NoHeaderError:
+                                    tags = ID3()
+                                tags.delall("USLT")
+                                tags.add(USLT(encoding=3, lang=u'eng', desc=u'Lyrics', text=transcription_text))
+                                tags.save(filepath)
+                                print(f"🎵 Lyrics tag ajouté à {filename}")
+                            except Exception as tag_err:
+                                print(f"⚠️ Erreur lors de l'écriture des tags ID3 pour {filename} : {tag_err}")
 
                         # Sauvegarder immédiatement après chaque transcription
                         with open(output_file, "w", encoding="utf-8") as f:
