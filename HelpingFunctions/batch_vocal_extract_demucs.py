@@ -31,6 +31,15 @@ def extract_vocals(audio_path, output_dir):
     """
     Extrait la partie vocale d'un fichier audio à l'aide de Demucs et sauvegarde uniquement la piste vocale.
     """
+    # Générer un nom de fichier de sortie unique
+    random_hash = generate_random_hash(audio_path)
+    final_output_path = os.path.join(output_dir, f'{random_hash}_vocals.mp3')
+
+    # Vérifier si le fichier existe déjà AVANT la séparation
+    if os.path.exists(final_output_path):
+        print(f"⏩ Fichier déjà présent, skip : {final_output_path}")
+        return
+
     # Lancer la séparation avec Demucs
     try:
         command = f'--two-stems vocals -n mdx_extra --device {DEVICE} "{audio_path}"'
@@ -49,10 +58,6 @@ def extract_vocals(audio_path, output_dir):
     if not os.path.exists(vocals_path):
         print(f"⚠️ Vocaux non trouvés pour {audio_path}")
         return
-
-    # Générer un nom de fichier de sortie unique
-    random_hash = generate_random_hash(audio_path)
-    final_output_path = os.path.join(output_dir, f'{random_hash}_vocals.mp3')
 
     # Créer le dossier de sortie s’il n’existe pas
     os.makedirs(output_dir, exist_ok=True)
