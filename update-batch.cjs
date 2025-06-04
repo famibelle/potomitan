@@ -49,7 +49,7 @@ async function updateBatch() {
 
       console.log(`✅ Donnée insérée ou ignorée (doublon) : ${name}`);
     } catch (err) {
-      console.error(`❌ Erreur d'insertion pour ${name} :`, err.message);
+      console.error(`❌ Erreur d'insertion pour ${name} :`, err.message, '\nDétail SQL :', err);
     }
   }
 
