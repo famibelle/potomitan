@@ -7,8 +7,10 @@ if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config({ override: true });
 }
 
-// Construire un chemin absolu compatible Windows/Linux
-const dataFilePath = path.resolve(__dirname, 'transcription_batch.json');
+// Utilisation d'un argument pour le nom du fichier JSON
+const args = process.argv.slice(2);
+const inputFile = args[0] || 'transcription_batch.json';
+const dataFilePath = path.resolve(__dirname, inputFile);
 
 const poolConfig = {
   connectionString: process.env.DATABASE_URL,
