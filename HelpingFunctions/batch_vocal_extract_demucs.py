@@ -9,6 +9,7 @@ import gc
 import torch
 import demucs.separate
 import shlex
+import pydub
 
 
 # Détecte automatiquement GPU ou CPU
@@ -32,9 +33,7 @@ def extract_vocals(audio_path, output_dir):
     """
     # Lancer la séparation avec Demucs
     try:
-        #command = f'--two-stems vocals -n mdx_extra "{audio_path}"'
         command = f'--two-stems vocals -n mdx_extra --device {DEVICE} "{audio_path}"'
-
         demucs.separate.main(shlex.split(command))
     except Exception as e:
         print(f"Erreur lors de la séparation de {audio_path} : {e}")
@@ -53,14 +52,19 @@ def extract_vocals(audio_path, output_dir):
 
     # Générer un nom de fichier de sortie unique
     random_hash = generate_random_hash(audio_path)
-    final_output_path = os.path.join(output_dir, f'{random_hash}_vocals.wav')
+    final_output_path = os.path.join(output_dir, f'{random_hash}_vocals.mp3')
 
     # Créer le dossier de sortie s’il n’existe pas
     os.makedirs(output_dir, exist_ok=True)
 
-    # Déplacer la piste vocale
-    shutil.move(vocals_path, final_output_path)
-    print(f"✔️ Vocaux extraits : {final_output_path}")
+    # Convertir le wav en mp3
+    try:
+        audio = pydub.AudioSegment.from_wav(vocals_path)
+        audio.export(final_output_path, format="mp3")
+        print(f"✔️ Vocaux extraits et convertis en mp3 : {final_output_path}")
+    except Exception as e:
+        print(f"Erreur lors de la conversion en mp3 pour {vocals_path} : {e}")
+        return
 
     # Nettoyer
     try:
