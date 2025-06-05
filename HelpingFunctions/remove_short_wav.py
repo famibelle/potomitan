@@ -31,7 +31,7 @@ def main():
     # Configurer le parser d'arguments
     parser = argparse.ArgumentParser(description='Supprimer les fichiers MP3 et WAV dont la durée est inférieure à une durée spécifiée.')
     parser.add_argument('directory', type=str, help='Le répertoire contenant les fichiers audio')
-    parser.add_argument('min_duration', type=float, help='La durée minimale en secondes')
+    parser.add_argument('--min_duration', type=float, default=2.0, help='La durée minimale en secondes (par défaut : 2 secondes)')
 
     # Parser les arguments
     args = parser.parse_args()
