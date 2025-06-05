@@ -1,31 +1,34 @@
 import os
 import argparse
 from pydub import AudioSegment
+from tqdm import tqdm
 
 def delete_short_audio_files(directory, min_duration):
-    # Parcourir tous les fichiers dans le répertoire
-    for filename in os.listdir(directory):
-        if filename.endswith(".mp3") or filename.endswith(".wav"):
-            filepath = os.path.join(directory, filename)
+    # Obtenir la liste des fichiers dans le répertoire
+    files = [f for f in os.listdir(directory) if f.endswith(".mp3") or f.endswith(".wav")]
 
-            try:
-                # Charger le fichier audio
-                if filename.endswith(".mp3"):
-                    audio = AudioSegment.from_mp3(filepath)
-                elif filename.endswith(".wav"):
-                    audio = AudioSegment.from_wav(filepath)
+    # Parcourir tous les fichiers avec une barre de progression
+    for filename in tqdm(files, desc="Traitement des fichiers"):
+        filepath = os.path.join(directory, filename)
 
-                # Obtenir la durée en secondes
-                duration_in_seconds = len(audio) / 1000
+        try:
+            # Charger le fichier audio
+            if filename.endswith(".mp3"):
+                audio = AudioSegment.from_mp3(filepath)
+            elif filename.endswith(".wav"):
+                audio = AudioSegment.from_wav(filepath)
 
-                # Supprimer le fichier si la durée est inférieure à la durée minimale spécifiée
-                if duration_in_seconds < min_duration:
-                    os.remove(filepath)
-                    print(f"Supprimé : {filename} ({duration_in_seconds} secondes)")
-                else:
-                    print(f"Conservé : {filename} ({duration_in_seconds} secondes)")
-            except Exception as e:
-                print(f"Erreur lors du traitement du fichier {filename}: {e}")
+            # Obtenir la durée en secondes
+            duration_in_seconds = len(audio) / 1000
+
+            # Supprimer le fichier si la durée est inférieure à la durée minimale spécifiée
+            if duration_in_seconds < min_duration:
+                os.remove(filepath)
+                tqdm.write(f"Supprimé : {filename} ({duration_in_seconds} secondes)")
+            else:
+                tqdm.write(f"Conservé : {filename} ({duration_in_seconds} secondes)")
+        except Exception as e:
+            tqdm.write(f"Erreur lors du traitement du fichier {filename}: {e}")
 
 def main():
     # Configurer le parser d'arguments
