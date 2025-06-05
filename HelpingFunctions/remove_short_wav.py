@@ -1,26 +1,43 @@
 import os
-import librosa
-import sys
+import argparse
+from pydub import AudioSegment
 
-def remove_short_wav_files(directory, min_duration=0.5):
+def delete_short_audio_files(directory, min_duration):
+    # Parcourir tous les fichiers dans le répertoire
     for filename in os.listdir(directory):
-        if filename.endswith(".wav"):
-            file_path = os.path.join(directory, filename)
+        if filename.endswith(".mp3") or filename.endswith(".wav"):
+            filepath = os.path.join(directory, filename)
+
             try:
                 # Charger le fichier audio
-                y, sr = librosa.load(file_path, sr=None)
-                duration = librosa.get_duration(y=y, sr=sr)
+                if filename.endswith(".mp3"):
+                    audio = AudioSegment.from_mp3(filepath)
+                elif filename.endswith(".wav"):
+                    audio = AudioSegment.from_wav(filepath)
 
-                # Supprimer le fichier si la durée est inférieure à min_duration
-                if duration < min_duration:
-                    os.remove(file_path)
-                    print(f"Supprimé: {filename} (durée: {duration:.2f} secondes)")
+                # Obtenir la durée en secondes
+                duration_in_seconds = len(audio) / 1000
+
+                # Supprimer le fichier si la durée est inférieure à la durée minimale spécifiée
+                if duration_in_seconds < min_duration:
+                    os.remove(filepath)
+                    print(f"Supprimé : {filename} ({duration_in_seconds} secondes)")
+                else:
+                    print(f"Conservé : {filename} ({duration_in_seconds} secondes)")
             except Exception as e:
-                print(f"Erreur lors du traitement de {filename}: {e}")
+                print(f"Erreur lors du traitement du fichier {filename}: {e}")
+
+def main():
+    # Configurer le parser d'arguments
+    parser = argparse.ArgumentParser(description='Supprimer les fichiers MP3 et WAV dont la durée est inférieure à une durée spécifiée.')
+    parser.add_argument('directory', type=str, help='Le répertoire contenant les fichiers audio')
+    parser.add_argument('min_duration', type=float, help='La durée minimale en secondes')
+
+    # Parser les arguments
+    args = parser.parse_args()
+
+    # Appeler la fonction avec les arguments fournis
+    delete_short_audio_files(args.directory, args.min_duration)
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: python remove_short_wav.py <directory>")
-        sys.exit(1)
-    directory = sys.argv[1]
-    remove_short_wav_files(directory)
+    main()
