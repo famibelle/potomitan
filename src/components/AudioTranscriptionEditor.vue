@@ -7,9 +7,9 @@
 
       <!-- Navigation rapide -->
       <div class="navigation-controls" v-if="visibleFiles.length">
-        <button @click="goToPrevious" :disabled="!hasPrevious" class="nav-btn">←</button>
+        
         <span class="nav-status">Segment {{ currentIndexDisplay + 1 }} / {{ audioFiles.length }}</span>
-        <button @click="goToNext" :disabled="!hasNext" class="nav-btn">→</button>
+        
         <button @click="shuffleFiles" class="nav-btn" title="Mélanger l'ordre des fichiers">🔀</button>
         <button @click="sortByLikes" class="nav-btn" title="Trier par nombre de likes">👍🏿</button>
         <button @click="sortByDislikes" class="nav-btn" title="Trier par nombre de dislikes">👎🏿</button>
