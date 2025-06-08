@@ -14,6 +14,9 @@
         <button @click="sortByLikes" class="nav-btn" title="Trier par nombre de likes">👍🏿</button>
         <button @click="sortByDislikes" class="nav-btn" title="Trier par nombre de dislikes">👎🏿</button>
         <button @click="sortByStars" class="nav-btn" title="Trier par nombre d'étoiles (cliquer à nouveau pour inverser)">★</button>
+        <button class="nav-btn" title="Notifications">
+      🔔 <span class="notification-badge">5</span>
+</button>
       </div>
     </div>
 
