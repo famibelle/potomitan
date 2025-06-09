@@ -9,14 +9,34 @@
       <div class="navigation-controls" v-if="visibleFiles.length">
         
         <span class="nav-status">Segment {{ currentIndexDisplay + 1 }} / {{ audioFiles.length }}</span>
-        
+
         <button @click="shuffleFiles" class="nav-btn" title="Mélanger l'ordre des fichiers">🔀</button>
         <button @click="sortByLikes" class="nav-btn" title="Trier par nombre de likes">👍🏿</button>
         <button @click="sortByDislikes" class="nav-btn" title="Trier par nombre de dislikes">👎🏿</button>
         <button @click="sortByStars" class="nav-btn" title="Trier par nombre d'étoiles (cliquer à nouveau pour inverser)">★</button>
-        <button class="nav-btn" title="Notifications">
-      🔔 <span class="notification-badge">5</span>
-</button>
+        <button class="nav-btn" title="Notifications" @click="toggleNotifications"> 🔔 <span class="notification-badge">{{ notificationCount }}</span> </button>
+        <div v-if="showNotifications" class="notifications-list">
+          <div v-if="notifications.length === 0" class="notification-item empty">Aucune notification récente.</div>
+          <div v-for="(notif, idx) in notifications" :key="idx" class="notification-item">
+            <template v-if="notif.type === 'like'">
+              👍 Nouveau like sur <b>{{ notif.fileName }}</b> ({{ notif.count }})
+              <span v-if="notif.timestamp" class="notif-time">— {{ new Date(notif.timestamp).toLocaleString() }}</span>
+            </template>
+            <template v-else-if="notif.type === 'dislike'">
+              👎 Nouveau dislike sur <b>{{ notif.fileName }}</b> ({{ notif.count }})
+              <span v-if="notif.timestamp" class="notif-time">— {{ new Date(notif.timestamp).toLocaleString() }}</span>
+            </template>
+            <template v-else-if="notif.type === 'transcription'">
+              📝 Nouvelle transcription sur <b>{{ notif.fileName }}</b>
+              <span v-if="notif.timestamp" class="notif-time">— {{ new Date(notif.timestamp).toLocaleString() }}</span>
+              <div class="notif-content">"{{ notif.content }}"</div>
+            </template>
+            <template v-else-if="notif.type === 'rating'">
+              ★ Note modifiée sur <b>{{ notif.fileName }}</b> : {{ notif.oldRating }} → {{ notif.newRating }}
+              <span v-if="notif.timestamp" class="notif-time">— {{ new Date(notif.timestamp).toLocaleString() }}</span>
+            </template>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -81,11 +101,35 @@
         </details>
       </div>
     </div>
+
+    <!-- Notifications -->
+    <div v-if="showNotifications" class="notifications-panel">
+      <h3 class="notifications-title">Notifications</h3>
+      <button class="close-btn" @click="toggleNotifications">✖️</button>
+      <div v-if="notifications.length === 0" class="no-notifications">
+        Aucune nouvelle notification.
+      </div>
+      <div v-for="(notification, index) in notifications" :key="index" class="notification-item">
+        <div v-if="notification.type === 'like'" class="notification-content">
+          👍 {{ notification.fileName }} a reçu {{ notification.count }} nouveau(x) like(s).
+        </div>
+        <div v-if="notification.type === 'dislike'" class="notification-content">
+          👎 {{ notification.fileName }} a reçu {{ notification.count }} nouveau(x) dislike(s).
+        </div>
+        <div v-if="notification.type === 'transcription'" class="notification-content">
+          ✏️ Une nouvelle transcription a été proposée pour {{ notification.fileName }}.
+        </div>
+        <div v-if="notification.type === 'rating'" class="notification-content">
+          ⭐ La note de {{ notification.fileName }} a été changée de {{ notification.oldRating }} à {{ notification.newRating }}.
+        </div>
+        <div class="timestamp">{{ new Date(notification.timestamp).toLocaleString() }}</div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, computed, nextTick } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed, nextTick, watch } from 'vue'
 
 const audioFiles = ref([])
 const visibleFiles = ref([])
@@ -265,6 +309,128 @@ async function onDislike(file) {
   }
 }
 
+// Stockage de l'état précédent pour chaque fichier (par id)
+const previousState = ref({});
+
+const notificationCount = computed(() => {
+  let notif = 0;
+  visibleFiles.value.forEach(file => {
+    const prev = previousState.value[file.id] || {};
+    // Nouveaux likes
+    if (typeof prev.likes === 'number' && typeof file.likes === 'number' && file.likes > prev.likes) notif++;
+    // Nouveaux dislikes
+    if (typeof prev.dislikes === 'number' && typeof file.dislikes === 'number' && file.dislikes > prev.dislikes) notif++;
+    // Nouveaux textes de transcription proposés
+    if (Array.isArray(file.history) && Array.isArray(prev.history)) {
+      if (file.history.length > prev.history.length) notif++;
+    } else if (Array.isArray(file.history) && !Array.isArray(prev.history) && file.history.length > 1) {
+      notif++;
+    }
+    // Changement de nombre d'étoiles
+    if (typeof prev.rating === 'number' && typeof file.rating === 'number' && file.rating !== prev.rating) notif++;
+  });
+  return notif;
+});
+
+const showNotifications = ref(false);
+
+function toggleNotifications() {
+  showNotifications.value = !showNotifications.value;
+  if (showNotifications.value) {
+    // Réinitialise l'état précédent à l'état actuel pour effacer les notifications
+    visibleFiles.value.forEach(file => {
+      previousState.value[file.id] = {
+        likes: file.likes,
+        dislikes: file.dislikes,
+        rating: file.rating,
+        history: file.history ? [...file.history] : []
+      };
+    });
+  }
+}
+
+const notifications = computed(() => {
+  const notifList = [];
+  visibleFiles.value.forEach(file => {
+    const prev = previousState.value[file.id] || {};
+    // Nouveaux likes
+    if (typeof prev.likes === 'number' && typeof file.likes === 'number' && file.likes > prev.likes) {
+      notifList.push({
+        type: 'like',
+        fileName: file.name,
+        fileId: file.id,
+        count: file.likes - prev.likes,
+        timestamp: file.history && file.history.length ? file.history[file.history.length-1].timestamp : null
+      });
+    }
+    // Nouveaux dislikes
+    if (typeof prev.dislikes === 'number' && typeof file.dislikes === 'number' && file.dislikes > prev.dislikes) {
+      notifList.push({
+        type: 'dislike',
+        fileName: file.name,
+        fileId: file.id,
+        count: file.dislikes - prev.dislikes,
+        timestamp: file.history && file.history.length ? file.history[file.history.length-1].timestamp : null
+      });
+    }
+    // Nouveaux textes de transcription proposés
+    if (Array.isArray(file.history) && Array.isArray(prev.history) && file.history.length > prev.history.length) {
+      for (let i = prev.history.length; i < file.history.length; i++) {
+        notifList.push({
+          type: 'transcription',
+          fileName: file.name,
+          fileId: file.id,
+          content: file.history[i].transcription,
+          timestamp: file.history[i].timestamp
+        });
+      }
+    } else if (Array.isArray(file.history) && !Array.isArray(prev.history) && file.history.length > 1) {
+      for (let i = 1; i < file.history.length; i++) {
+        notifList.push({
+          type: 'transcription',
+          fileName: file.name,
+          fileId: file.id,
+          content: file.history[i].transcription,
+          timestamp: file.history[i].timestamp
+        });
+      }
+    }
+    // Changement de nombre d'étoiles
+    if (typeof prev.rating === 'number' && typeof file.rating === 'number' && file.rating !== prev.rating) {
+      notifList.push({
+        type: 'rating',
+        fileName: file.name,
+        fileId: file.id,
+        oldRating: prev.rating,
+        newRating: file.rating,
+        timestamp: file.history && file.history.length ? file.history[file.history.length-1].timestamp : null
+      });
+    }
+  });
+  // Tri antichronologique (plus récent d'abord)
+  notifList.sort((a, b) => {
+    if (a.timestamp && b.timestamp) {
+      return new Date(b.timestamp) - new Date(a.timestamp);
+    }
+    return 0;
+  });
+  return notifList;
+});
+
+function updatePreviousState() {
+  visibleFiles.value.forEach(file => {
+    previousState.value[file.id] = {
+      likes: file.likes,
+      dislikes: file.dislikes,
+      rating: file.rating,
+      history: file.history ? [...file.history] : []
+    };
+  });
+}
+
+// Mettre à jour l'état précédent après chaque chargement ou modification
+watch(visibleFiles, updatePreviousState, { deep: true, immediate: true });
+
 onMounted(async () => {
   const res = await fetch('/api/audio-files')
   audioFiles.value = await res.json()
@@ -306,5 +472,93 @@ onBeforeUnmount(() => {
   font-size: 1.1rem;
   font-weight: 500;
 }
+.notifications-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 300px;
+  max-width: 80%;
+  height: 100%;
+  background: white;
+  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
+  padding: 1rem;
+  z-index: 1000;
+  overflow-y: auto;
+  animation: slide-in 0.3s ease-out;
+}
+.notifications-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+}
+.notification-item {
+  padding: 0.5rem;
+  border-bottom: 1px solid #eee;
+}
+.notification-item:last-child {
+  border-bottom: none;
+}
+.notification-content {
+  font-size: 0.9rem;
+  margin-bottom: 0.2rem;
+}
+.timestamp {
+  font-size: 0.8rem;
+  color: #888;
+}
+.no-notifications {
+  text-align: center;
+  color: #888;
+  font-size: 0.9rem;
+  padding: 1rem 0;
+}
+.notifications-list {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 300px;
+  max-width: 80%;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+  z-index: 100;
+  margin-top: 0.5rem;
+}
+.notifications-list .notification-item {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #eee;
+  font-size: 0.9rem;
+}
+.notifications-list .notification-item.empty {
+  text-align: center;
+  color: #888;
+  font-size: 0.9rem;
+  padding: 1rem 0;
+}
+.notifications-list .notif-time {
+  font-size: 0.8rem;
+  color: #888;
+  margin-left: 0.5rem;
+}
 @keyframes fade-in-out { 0%,100% { opacity: 0; } 10%,90% { opacity: 1; } }
+@keyframes slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
 </style>
