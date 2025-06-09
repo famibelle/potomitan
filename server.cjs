@@ -1,4 +1,9 @@
 const { Pool } = require('pg');
+const express = require('express');
+const fs = require('fs');
+const path = require('path');
+const cors = require('cors');
+const bodyParser = require('body-parser');
 
 // Charger les variables d'environnement uniquement en local
 if (process.env.NODE_ENV !== 'production') {
@@ -9,26 +14,18 @@ const poolConfig = {
   connectionString: process.env.DATABASE_URL,
 };
 
-// Ajoutez la configuration SSL uniquement pour l'environnement distant
-if (process.env.NODE_ENV === 'production') {
-  poolConfig.ssl = { rejectUnauthorized: false };
-}
+// Toujours activer SSL pour Render/Postgres
+poolConfig.ssl = { rejectUnauthorized: false };
 
 const pool = new Pool(poolConfig);
-
-const express = require('express');
-const fs = require('fs');
-const path = require('path');
-const cors = require('cors');
-const bodyParser = require('body-parser');
-
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 const AUDIO_DIR = path.join(__dirname, 'public', 'audio');
+const NOTIF_STATE_PATH = path.join(__dirname, 'notifications-state.json');
 
 app.use(cors());
-app.use(bodyParser.json());
+app.use(bodyParser.json({ limit: '5mb' }));
 
 // Liste les fichiers audio + transcription (avec historique complet)
 app.get('/api/audio-files', async (req, res) => {
@@ -165,6 +162,50 @@ app.post('/api/dislike', async (req, res) => {
   }
 });
 
+// --- Notifications state (PostgreSQL storage) ---
+
+// Récupérer les notifications (antichronologique)
+app.get('/api/notifications-state', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT id, type, file_id AS "fileId", file_name AS "fileName", content, new_rating AS "newRating", timestamp
+       FROM notifications
+       ORDER BY timestamp DESC
+       LIMIT 100`
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Erreur lecture notifications (DB):', err);
+    res.status(500).json({ error: 'Erreur lecture notifications (DB)' });
+  }
+});
+
+// Ajouter une notification (ou vider la table si tableau vide)
+app.post('/api/notifications-state', async (req, res) => {
+  try {
+    const notifs = req.body;
+    if (Array.isArray(notifs) && notifs.length === 0) {
+      // Vider la table
+      await pool.query('DELETE FROM notifications');
+      return res.json({ status: 'cleared' });
+    }
+    // Ajout d'une ou plusieurs notifications
+    if (Array.isArray(notifs)) {
+      // On ne garde que la dernière notification reçue (logique front)
+      const notif = notifs[notifs.length - 1];
+      await pool.query(
+        `INSERT INTO notifications (type, file_id, file_name, content, new_rating, timestamp)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [notif.type, notif.fileId, notif.fileName, notif.content || null, notif.newRating || null, notif.timestamp || new Date()]
+      );
+      return res.json({ status: 'added' });
+    }
+    res.status(400).json({ error: 'Format de notification invalide' });
+  } catch (err) {
+    console.error('Erreur écriture notifications (DB):', err);
+    res.status(500).json({ error: 'Erreur écriture notifications (DB)' });
+  }
+});
 
 // Sert d’abord les fichiers statiques audio
 app.use('/audio', express.static(AUDIO_DIR));
