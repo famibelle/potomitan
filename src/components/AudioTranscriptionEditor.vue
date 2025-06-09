@@ -90,11 +90,11 @@
       </div>
       <div v-for="(notif, idx) in notifications.slice().reverse()" :key="idx" class="notification-item">
         <template v-if="notif.type === 'like'">
-          👍 Nouveau like sur <b>{{ notif.fileName }}</b>
+          👍🏿 Nouveau like sur <b>{{ notif.fileName }}</b>
           <span v-if="notif.timestamp" class="notif-time">— {{ new Date(notif.timestamp).toLocaleString() }}</span>
         </template>
         <template v-else-if="notif.type === 'dislike'">
-          👎 Nouveau dislike sur <b>{{ notif.fileName }}</b>
+          👎🏿 Nouveau dislike sur <b>{{ notif.fileName }}</b>
           <span v-if="notif.timestamp" class="notif-time">— {{ new Date(notif.timestamp).toLocaleString() }}</span>
         </template>
         <template v-else-if="notif.type === 'transcription'">
@@ -103,7 +103,7 @@
           <div class="notif-content">"{{ notif.content }}"</div>
         </template>
         <template v-else-if="notif.type === 'rating'">
-          ★ Note modifiée sur <b>{{ notif.fileName }}</b> : {{ notif.newRating }}
+          ⭐ Note modifiée sur <b>{{ notif.fileName }}</b> : {{ notif.newRating }}
           <span v-if="notif.timestamp" class="notif-time">— {{ new Date(notif.timestamp).toLocaleString() }}</span>
         </template>
       </div>
@@ -320,11 +320,11 @@ async function addNotification(type, file, extra = {}) {
   };
   // Ajoute côté client
   notifications.value.push(notif);
-  // Sauvegarde côté serveur
+  // Sauvegarde côté serveur (envoie uniquement la dernière notif)
   await fetch('/api/notifications-state', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(notifications.value)
+    body: JSON.stringify([notif])
   });
 }
 
