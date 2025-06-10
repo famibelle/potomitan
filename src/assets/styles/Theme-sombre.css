@@ -338,7 +338,7 @@ audio.audio-player {
 
 @media (prefers-color-scheme: dark) {
   .notifications-panel {
-    background: #23272f;
+    background: #23272f !important;
     color: #f3f6fa;
     /* Tu peux aussi ajuster les ombres ou bordures si besoin */
   }
