@@ -71,7 +71,7 @@
         <details v-if="file.history && file.history.length > 1" class="history-log">
           <summary class="history-title">🕒 Historique des modifications</summary>
           <ul>
-            <li v-for="(entry, idx) in file.history.slice(0, -1)" :key="idx" class="history-entry">
+            <li v-for="(entry, idx) in file.history.slice(0, -1).reverse()" :key="idx" class="history-entry">
               <span class="timestamp">🗓️ {{ new Date(entry.timestamp).toLocaleString() }}</span><br />
               <span class="content text-sm italic">{{ entry.transcription }}</span>
             </li>
@@ -88,7 +88,7 @@
       <div v-if="notifications.length === 0" class="no-notifications">
         Aucune nouvelle notification.
       </div>
-      <div v-for="(notif, idx) in notifications.slice().reverse()" :key="idx" class="notification-item">
+      <div v-for="(notif, idx) in notifications.slice()" :key="idx" class="notification-item">
         <template v-if="notif.type === 'like'">
           👍🏿 Nouveau like sur <b>{{ notif.fileName }}</b>
           <span v-if="notif.timestamp" class="notif-time">— {{ new Date(notif.timestamp).toLocaleString() }}</span>
