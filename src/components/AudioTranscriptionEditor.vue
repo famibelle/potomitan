@@ -1,7 +1,7 @@
 <template>
   <div class="app-container">
     <div class="sticky-header">
-      <h2 class="title">Maké an Kréyòl Gwadloup</h2>
+      <h2 class="title">Maké an Kréyòl Gwadloupéyen</h2>
 
       <div v-if="successMessage" class="toast">{{ successMessage }}</div>
 
