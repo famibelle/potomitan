@@ -71,7 +71,7 @@
         <details v-if="file.history && file.history.length > 1" class="history-log">
           <summary class="history-title">🕒 Historique des modifications</summary>
           <ul>
-            <li v-for="(entry, idx) in file.history.slice(0, -1).reverse()" :key="idx" class="history-entry">
+            <li v-for="(entry, idx) in file.history.slice(0, -1)" :key="idx" class="history-entry">
               <span class="timestamp">🗓️ {{ new Date(entry.timestamp).toLocaleString() }}</span><br />
               <span class="content text-sm italic">{{ entry.transcription }}</span>
             </li>
