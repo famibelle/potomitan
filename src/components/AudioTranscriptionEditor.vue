@@ -5,7 +5,8 @@
 
       <div v-if="successMessage" class="toast">{{ successMessage }}</div>
 
-      <!-- Navigation rapide -->
+      <!-- Navigation rapide (SUPPRIMÉE du header) -->
+      <!--
       <div class="navigation-controls" v-if="visibleFiles.length">
         <span class="nav-status">Segment {{ currentIndexDisplay + 1 }} / {{ audioFiles.length }}</span>
         <div class="nav-btn-group">
@@ -13,9 +14,10 @@
           <button @click="sortByLikes" class="nav-btn" title="Trier par nombre de likes">👍🏿</button>
           <button @click="sortByDislikes" class="nav-btn" title="Trier par nombre de dislikes">👎🏿</button>
           <button @click="sortByStars" class="nav-btn" title="Trier par nombre d'étoiles (cliquer à nouveau pour inverser)">★</button>
-          <button class="nav-btn" title="Notifications" @click="toggleNotifications"> 🔔 <span class="notification-badge">{{ notificationCount }}</span> </button>
+          <button class="nav-btn" title="Notifications" @click="toggleNotifications">🔔<span class="notification-badge">{{ notificationCount }}</span> </button>
         </div>
       </div>
+      -->
     </div>
 
     <div v-for="file in visibleFiles" :key="file.id" class="row">
@@ -57,7 +59,6 @@
             {{ n <= file.rating ? '★' : '☆' }}
           </span>
         </div>
-
 
         <textarea
           v-model="file.transcription"
@@ -108,6 +109,20 @@
         </template>
       </div>
     </div>
+
+    <!-- Sticky footer avec les boutons de navigation et notifications -->
+    <footer class="sticky-footer" v-if="visibleFiles.length">
+      <span class="nav-status">Segment {{ currentIndexDisplay + 1 }} / {{ audioFiles.length }}</span>
+      <div class="nav-btn-group">
+        <button @click="shuffleFiles" class="nav-btn" title="Mélanger l'ordre des fichiers">🔀</button>
+        <button @click="sortByLikes" class="nav-btn" title="Trier par nombre de likes">👍🏿</button>
+        <button @click="sortByDislikes" class="nav-btn" title="Trier par nombre de dislikes">👎🏿</button>
+        <button @click="sortByStars" class="nav-btn" title="Trier par nombre d'étoiles (cliquer à nouveau pour inverser)">⭐</button>
+        <button class="nav-btn" title="Notifications" @click="toggleNotifications">
+          🔔 <span class="notification-badge">{{ notificationCount }}</span>
+        </button>
+      </div>
+    </footer>
   </div>
 </template>
 
@@ -452,6 +467,66 @@ function toggleNotifications() {
   color: #888;
   font-size: 0.9rem;
   padding: 1rem 0;
+}
+.sticky-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100vw;
+  background: #222; /* fond sombre */
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.18);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem 0.5rem;
+  z-index: 1001;
+  border-top: 1px solid #333;
+}
+
+.sticky-footer .nav-status {
+  color: #fff;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.sticky-footer .nav-btn-group {
+  display: flex;
+  gap: 1.2rem;
+}
+
+.sticky-footer .nav-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: color 0.2s;
+  position: relative; /* Pour positionner le badge */
+}
+.sticky-footer .nav-btn:hover {
+  color: #ffd700;
+}
+
+/* Badge notification plus petit et positionné en haut à droite de la cloche */
+.notification-badge {
+  position: absolute;
+  top: -1px;
+  right: 2px;
+  background: #e74c3c;
+  color: #fff;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  font-size: 0.75em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  font-weight: bold;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  z-index: 2;
 }
 @keyframes fade-in-out { 0%,100% { opacity: 0; } 10%,90% { opacity: 1; } }
 @keyframes slide-in {
