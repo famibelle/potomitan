@@ -335,3 +335,23 @@ audio.audio-player {
     font-size: 12px;
     margin-left: -8px;
 }
+
+@media (prefers-color-scheme: dark) {
+  .notifications-panel {
+    background: #23272f;
+    color: #f3f6fa;
+    /* Tu peux aussi ajuster les ombres ou bordures si besoin */
+  }
+  .notification-item {
+    border-bottom: 1px solid #333a44;
+  }
+  .no-notifications {
+    color: #aaa;
+  }
+  .close-btn {
+    color: #f3f6fa;
+  }
+  .notifications-title {
+    color: #f3f6fa;
+  }
+}
