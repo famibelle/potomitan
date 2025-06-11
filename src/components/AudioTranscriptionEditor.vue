@@ -112,7 +112,13 @@
 
     <!-- Sticky footer avec les boutons de navigation et notifications -->
     <footer class="sticky-footer" v-if="visibleFiles.length">
-      <span class="nav-status">Segment {{ currentIndexDisplay + 1 }} / {{ audioFiles.length }}</span>
+
+      <span class="nav-status">
+        <button @click="jumpPrevious" class="nav-btn" title="Sauter 10 segments en arrière">⏮️</button>
+        Segment {{ currentIndexDisplay + 1 }} / {{ audioFiles.length }}
+        <button @click="jumpNext" class="nav-btn" title="Sauter 10 segments en avant">⏭️</button>
+      </span>      
+      
       <div class="nav-btn-group">
         <button @click="shuffleFiles" class="nav-btn" title="Mélanger l'ordre des fichiers">🔀</button>
         <button @click="sortByLikes" class="nav-btn" title="Trier par nombre de likes">👍🏿</button>
@@ -157,6 +163,18 @@ function goToPrevious() {
 function goToNext() {
   const next = audioFiles.value[currentIndexDisplay.value + 1]
   if (next) focusTextarea(next.id)
+}
+
+function jumpPrevious() {
+  let targetIdx = Math.max(0, currentIndexDisplay.value - 10);
+  const file = audioFiles.value[targetIdx];
+  if (file) focusTextarea(file.id);
+}
+
+function jumpNext() {
+  let targetIdx = Math.min(audioFiles.value.length - 1, currentIndexDisplay.value + 10);
+  const file = audioFiles.value[targetIdx];
+  if (file) focusTextarea(file.id);
 }
 
 function focusTextarea(id) {
