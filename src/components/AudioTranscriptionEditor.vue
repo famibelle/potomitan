@@ -167,22 +167,27 @@ function goToNext() {
 
 function jumpPrevious() {
   const total = audioFiles.value.length;
-  // Navigation cyclique vers l'arrière par pas de 10
   let targetIdx = (currentIndexDisplay.value - 10 + total) % total;
-  ensureVisible(targetIdx);
+  showOnlyBatchContaining(targetIdx);
   const file = audioFiles.value[targetIdx];
   if (file) focusTextarea(file.id);
 }
 
 function jumpNext() {
   const total = audioFiles.value.length;
-  // Navigation cyclique vers l'avant par pas de 10
   let targetIdx = (currentIndexDisplay.value + 10) % total;
-  ensureVisible(targetIdx);
+  showOnlyBatchContaining(targetIdx);
   const file = audioFiles.value[targetIdx];
   if (file) focusTextarea(file.id);
 }
 
+function showOnlyBatchContaining(targetIdx) {
+  const start = Math.floor(targetIdx / BATCH_SIZE) * BATCH_SIZE;
+  const end = Math.min(start + BATCH_SIZE, audioFiles.value.length);
+  visibleFiles.value = audioFiles.value.slice(start, end);
+  currentIndex = end;
+}
+  
 // S'assure que le segment ciblé est chargé et visible
 function ensureVisible(targetIdx) {
   // Si le fichier n'est pas encore visible, on charge les batchs nécessaires
