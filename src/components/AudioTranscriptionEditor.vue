@@ -167,16 +167,28 @@ function goToNext() {
 
 function jumpPrevious() {
   let targetIdx = Math.max(0, currentIndexDisplay.value - 10);
+  ensureVisible(targetIdx);
   const file = audioFiles.value[targetIdx];
   if (file) focusTextarea(file.id);
 }
 
 function jumpNext() {
   let targetIdx = Math.min(audioFiles.value.length - 1, currentIndexDisplay.value + 10);
+  ensureVisible(targetIdx);
   const file = audioFiles.value[targetIdx];
   if (file) focusTextarea(file.id);
 }
 
+// Cette fonction s'assure que le fichier à targetIdx est bien visible dans la liste
+function ensureVisible(targetIdx) {
+  // Si on utilise un système de batch par BATCH_SIZE
+  if (!visibleFiles.value.includes(audioFiles.value[targetIdx])) {
+    // Charge tous les fichiers jusqu'à targetIdx (en ajoutant des batchs si besoin)
+    while (currentIndex < targetIdx + 1) {
+      loadMore();
+    }
+  }
+}
 function focusTextarea(id) {
   nextTick(() => {
     const el = textareas[id]
