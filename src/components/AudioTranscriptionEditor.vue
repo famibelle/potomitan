@@ -92,7 +92,7 @@
       <div v-for="(notif, idx) in notifications.slice()" :key="idx" class="notification-item">
         <template v-if="notif.type === 'like'">
           👍🏿 Nouveau like sur <b>{{ notif.fileName }}</b>
-          <span v-if="notif.timestamp" class="notif-time">— {{ new Date(notif.timestamp).toLocaleString() }}</span>
+          <span v-if="notif.timestamp" class="notif-time">le {{ formatNotifDatetime(notif.timestamp) }}</span>
         </template>
         <template v-else-if="notif.type === 'dislike'">
           👎🏿 Nouveau dislike sur <b>{{ notif.fileName }}</b>
@@ -196,6 +196,15 @@ function ensureVisible(targetIdx) {
   }
 }
 
+function formatNotifDatetime(dateStr) {
+  const date = new Date(dateStr);
+  const mois = [
+    "janvier", "février", "mars", "avril", "mai", "juin",
+    "juillet", "août", "septembre", "octobre", "novembre", "décembre"
+  ];
+  return `${date.getDate()} ${mois[date.getMonth()]} à ${date.getHours()}h${date.getMinutes().toString().padStart(2, '0')}`;
+}
+  
 function focusTextarea(id) {
   nextTick(() => {
     const el = textareas[id]
