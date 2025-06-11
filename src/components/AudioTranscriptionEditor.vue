@@ -92,7 +92,7 @@
       <div v-for="(notif, idx) in notifications.slice()" :key="idx" class="notification-item">
         <template v-if="notif.type === 'like'">
           👍🏿 Nouveau like sur <b>{{ notif.fileName }}</b>
-          <span v-if="notif.timestamp" class="notif-time">  le {{ new Date(notif.timestamp).toLocaleString('fr-FR', {
+          <span v-if="notif.timestamp" class="notif-time"> le {{ new Date(notif.timestamp).toLocaleString('fr-FR', {
               day: 'numeric',
               month: 'long',
               hour: '2-digit',
@@ -103,16 +103,37 @@
         </template>
         <template v-else-if="notif.type === 'dislike'">
           👎🏿 Nouveau dislike sur <b>{{ notif.fileName }}</b>
-          <span v-if="notif.timestamp" class="notif-time">— {{ new Date(notif.timestamp).toLocaleString('fr-FR') }}</span>
+          <span v-if="notif.timestamp" class="notif-time"> le {{ new Date(notif.timestamp).toLocaleString('fr-FR', {
+              day: 'numeric',
+              month: 'long',
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: false
+            }).replace(':', 'h') }}
+          </span>
         </template>
         <template v-else-if="notif.type === 'transcription'">
           📝 Nouvelle transcription sur <b>{{ notif.fileName }}</b>
-          <span v-if="notif.timestamp" class="notif-time">— {{ new Date(notif.timestamp).toLocaleString('fr-FR') }}</span>
+          <span v-if="notif.timestamp" class="notif-time"> le {{ new Date(notif.timestamp).toLocaleString('fr-FR', {
+              day: 'numeric',
+              month: 'long',
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: false
+            }).replace(':', 'h') }}
+          </span>
           <div class="notif-content">"{{ notif.content }}"</div>
         </template>
         <template v-else-if="notif.type === 'rating'">
           ⭐ Note modifiée sur <b>{{ notif.fileName }}</b> : {{ notif.newRating }}
-          <span v-if="notif.timestamp" class="notif-time">— {{ new Date(notif.timestamp).toLocaleString('fr-FR') }}</span>
+          <span v-if="notif.timestamp" class="notif-time"> le {{ new Date(notif.timestamp).toLocaleString('fr-FR', {
+              day: 'numeric',
+              month: 'long',
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: false
+            }).replace(':', 'h') }}
+          </span>
         </template>
       </div>
     </div>
