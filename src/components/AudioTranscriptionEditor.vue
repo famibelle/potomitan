@@ -92,7 +92,7 @@
       <div v-for="(notif, idx) in notifications.slice()" :key="idx" class="notification-item">
         <template v-if="notif.type === 'like'">
           👍🏿 Nouveau like sur <b>{{ notif.fileName }}</b>
-          <span v-if="notif.timestamp" class="notif-time">le {{ formatNotifDatetime(notif.timestamp) }}</span>
+          <span v-if="notif.timestamp" class="notif-time">— {{ new Date(notif.timestamp).toLocaleString() }}</span>
         </template>
         <template v-else-if="notif.type === 'dislike'">
           👎🏿 Nouveau dislike sur <b>{{ notif.fileName }}</b>
