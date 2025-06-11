@@ -190,7 +190,7 @@ function ensureVisible(targetIdx) {
     loadMore();
   }
 }
-}
+
 function focusTextarea(id) {
   nextTick(() => {
     const el = textareas[id]
