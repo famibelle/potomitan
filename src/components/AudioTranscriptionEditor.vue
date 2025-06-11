@@ -114,13 +114,13 @@
     <footer class="sticky-footer" v-if="visibleFiles.length">
 
       <span class="nav-status">
+        <button @click="shuffleFiles" class="nav-btn" title="Mélanger l'ordre des fichiers">🔀</button>
         <button @click="jumpPrevious" class="nav-btn" title="Sauter 10 segments en arrière">⏮️</button>
         Segment {{ currentIndexDisplay + 1 }} / {{ audioFiles.length }}
         <button @click="jumpNext" class="nav-btn" title="Sauter 10 segments en avant">⏭️</button>
       </span>      
       
       <div class="nav-btn-group">
-        <button @click="shuffleFiles" class="nav-btn" title="Mélanger l'ordre des fichiers">🔀</button>
         <button @click="sortByLikes" class="nav-btn" title="Trier par nombre de likes">👍🏿</button>
         <button @click="sortByDislikes" class="nav-btn" title="Trier par nombre de dislikes">👎🏿</button>
         <button @click="sortByStars" class="nav-btn" title="Trier par nombre d'étoiles (cliquer à nouveau pour inverser)">⭐</button>
@@ -166,28 +166,30 @@ function goToNext() {
 }
 
 function jumpPrevious() {
-  let targetIdx = Math.max(0, currentIndexDisplay.value - 10);
+  const total = audioFiles.value.length;
+  // Navigation cyclique vers l'arrière par pas de 10
+  let targetIdx = (currentIndexDisplay.value - 10 + total) % total;
   ensureVisible(targetIdx);
   const file = audioFiles.value[targetIdx];
   if (file) focusTextarea(file.id);
 }
 
 function jumpNext() {
-  let targetIdx = Math.min(audioFiles.value.length - 1, currentIndexDisplay.value + 10);
+  const total = audioFiles.value.length;
+  // Navigation cyclique vers l'avant par pas de 10
+  let targetIdx = (currentIndexDisplay.value + 10) % total;
   ensureVisible(targetIdx);
   const file = audioFiles.value[targetIdx];
   if (file) focusTextarea(file.id);
 }
 
-// Cette fonction s'assure que le fichier à targetIdx est bien visible dans la liste
+// S'assure que le segment ciblé est chargé et visible
 function ensureVisible(targetIdx) {
-  // Si on utilise un système de batch par BATCH_SIZE
-  if (!visibleFiles.value.includes(audioFiles.value[targetIdx])) {
-    // Charge tous les fichiers jusqu'à targetIdx (en ajoutant des batchs si besoin)
-    while (currentIndex < targetIdx + 1) {
-      loadMore();
-    }
+  // Si le fichier n'est pas encore visible, on charge les batchs nécessaires
+  while (!visibleFiles.value.includes(audioFiles.value[targetIdx]) && currentIndex < targetIdx + 1) {
+    loadMore();
   }
+}
 }
 function focusTextarea(id) {
   nextTick(() => {
