@@ -7,7 +7,7 @@
         <input
           v-model="searchQuery"
           type="text"
-          placeholder="Rechercher dans les transcriptions..."
+          placeholder="🔎Rechercher ..."
           class="search-input"
         />
       </div>
@@ -643,7 +643,7 @@ function toggleNotifications() {
   z-index: 2;
 }
 .search-bar {
-  margin: 1rem 0;
+  margin: 1rem 0 2rem; /* Ajoute une marge en bas de 2rem */
   display: flex;
   justify-content: center;
 }
@@ -651,6 +651,7 @@ function toggleNotifications() {
   width: 100%;
   max-width: 400px;
   padding: 0.5rem 1rem;
+  border: none !important; /* Supprime la bordure */
   border: 1px solid #ccc;
   border-radius: 4px;
   font-size: 1rem;
