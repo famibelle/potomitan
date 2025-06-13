@@ -12,6 +12,10 @@ from pydub import AudioSegment
 from pyannote.audio import Pipeline
 from pyannote.audio.pipelines.utils.hook import ProgressHook
 
+# Charger les variables d'environnement depuis un fichier .env s'il existe
+from dotenv import load_dotenv
+load_dotenv()
+
 # Prioriser les variables d'environnement système
 HUGGING_FACE_KEY = os.getenv("HuggingFace_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY_MCF")
@@ -83,8 +87,8 @@ def diarize_audio(audio_path, diarization_model, output_dir):
         # Extraire le segment audio correspondant au speaker
         segment_audio = audio[start_ms:end_ms]
 
-        segment_path = f"{output_dir}/{file_name}_segment_{start_ms}_{end_ms}.wav"
-        segment_audio.export(segment_path, format="wav")
+        segment_path = f"{output_dir}/{file_name}_segment_{start_ms}_{end_ms}.mp3"
+        segment_audio.export(segment_path, format="mp3")
 
         segments.append({
             "speaker": speaker,

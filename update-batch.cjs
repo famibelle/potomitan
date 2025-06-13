@@ -9,6 +9,25 @@ if (process.env.NODE_ENV !== 'production') {
 
 // Utilisation d'un argument pour le nom du fichier JSON
 const args = process.argv.slice(2);
+
+// Affichage de l'aide si -h ou --help est présent
+if (args.includes('-h') || args.includes('--help')) {
+  console.log(`
+Usage: node update-batch.cjs [fichier_json]
+
+Options :
+  -h, --help      Affiche cette aide
+
+Description :
+  Ce script lit un fichier JSON (par défaut transcription_batch.json) contenant des transcriptions
+  et les insère dans la base de données PostgreSQL configurée via la variable d'environnement DATABASE_URL.
+
+Exemple :
+  node update-batch.cjs mon_fichier.json
+  `);
+  process.exit(0);
+}
+
 const inputFile = args[0] || 'transcription_batch.json';
 const dataFilePath = path.resolve(__dirname, inputFile);
 
