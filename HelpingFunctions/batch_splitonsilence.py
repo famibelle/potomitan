@@ -47,7 +47,7 @@ def split_audio_on_silence(audio_path, output_path, silence_thresh=-40, min_sile
     # Sauvegarder chaque segment avec un nom de fichier aléatoire
     for i, chunk in enumerate(chunks):
         random_hash = generate_random_hash()
-        chunk.export(f"{output_path}/segment_{random_hash}.wav", format="wav")
+        chunk.export(f"{output_path}/segment_{random_hash}.mp3", format="mp3")
 
 def process_directory(input_dir, output_dir, silence_thresh=-40, min_silence_len=500, max_segment_duration=10000, min_segment_duration=1000):
     # Créer le répertoire de sortie s'il n'existe pas
