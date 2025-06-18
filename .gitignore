@@ -2,3 +2,6 @@
 .venv
 .env
 pretrained_models
+MP3
+batchlogs.log
+logs.log
