@@ -161,6 +161,7 @@
         <button @click="sortByLikes" class="nav-btn" title="Trier par nombre de likes">👍🏿</button>
         <button @click="sortByDislikes" class="nav-btn" title="Trier par nombre de dislikes">👎🏿</button>
         <button @click="sortByStars" class="nav-btn" title="Trier par nombre d'étoiles (cliquer à nouveau pour inverser)">⭐</button>
+        <button @click="sortByDate" class="nav-btn" title="Trier par date de création">🆕</button>
         <button class="nav-btn" title="Notifications" @click="toggleNotifications">
           🔔 <span class="notification-badge">{{ notificationCount }}</span>
         </button>
@@ -323,6 +324,18 @@ function sortByStars() {
   audioFiles.value.sort((a, b) => {
     const diff = (b.rating ?? 0) - (a.rating ?? 0);
     return sortState.value.asc ? -diff : diff;
+  });
+  visibleFiles.value = [];
+  currentIndex = 0;
+  loadMore();
+}
+
+function sortByDate() {
+  // Trie décroissant par date de création (timestamp ou createdAt)
+  audioFiles.value.sort((a, b) => {
+    const dateA = new Date(a.timestamp || a.createdAt || 0);
+    const dateB = new Date(b.timestamp || b.createdAt || 0);
+    return dateB - dateA;
   });
   visibleFiles.value = [];
   currentIndex = 0;
