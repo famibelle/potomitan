@@ -2,13 +2,9 @@
 .venv
 .env
 pretrained_models
-dist
-dist/audio/0d664ba8_vocals.mp3
-dist/audio/3dc02c13_vocals.mp3
-dist/audio/4675b985_vocals.mp3
-dist/audio/48608b7b_vocals.mp3
-dist/audio/725135b1_vocals.mp3
-dist/audio/cfe3b3b1_vocals.mp3
-dist/audio/e1102ade_vocals.mp3
+dist/
 logs.log
 MP3/
+HelpingFunctions/__pycache__
+pipeline_tmp/
+separated
