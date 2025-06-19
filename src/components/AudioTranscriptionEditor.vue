@@ -336,11 +336,11 @@ function sortByStars() {
 }
 
 function sortByDate() {
-  // Trie décroissant par date de création (timestamp ou createdAt)
+  // Trie décroissant par date de création (created_at)
   audioFiles.value.sort((a, b) => {
-    const dateA = new Date(a.timestamp || a.createdAt || 0);
-    const dateB = new Date(b.timestamp || b.createdAt || 0);
-    return dateB - dateA;
+    const dateA = new Date(a.created_at || 0);
+    const dateB = new Date(b.created_at || 0);
+    return dateB - dateA; // Tri décroissant
   });
   visibleFiles.value = [];
   currentIndex = 0;
@@ -566,6 +566,13 @@ function toggleLikeDislike() {
   visibleFiles.value = [];
   currentIndex = 0;
   loadMore();
+}
+
+function toggleOrder() {
+  audioFiles.value.reverse(); // Inverse l'ordre des fichiers
+  visibleFiles.value = [];
+  currentIndex = 0;
+  loadMore(); // Recharge les fichiers visibles
 }
 </script>
 
