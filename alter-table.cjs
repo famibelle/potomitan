@@ -21,7 +21,8 @@ async function alterTable() {
 
     // Ajout contrainte UNIQUE sur le champ transcription
     //const sqlUnique = `ALTER TABLE transcriptions ADD CONSTRAINT unique_transcription UNIQUE (transcription);`;
-    const sqlUnique = `ALTER TABLE transcriptions ADD CONSTRAINT unique_filename UNIQUE (filename);`;
+    // const sqlUnique = `ALTER TABLE transcriptions ADD CONSTRAINT unique_filename UNIQUE (filename);`;
+    const sqlUnique = `ALTER TABLE transcriptions ADD COLUMN created_at TIMESTAMP DEFAULT NOW();`;
     await pool.query(sqlUnique);
     console.log('✅ Contrainte UNIQUE ajoutée sur le champ transcription.');
   } catch (err) {
