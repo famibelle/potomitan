@@ -338,14 +338,21 @@ function sortByStars() {
 const dateSortAsc = ref(false); // État pour l'ordre croissant/décroissant
 
 function sortByDate() {
+  console.log("🆕 sortByDate called, asc =", dateSortAsc.value);
   audioFiles.value.sort((a, b) => {
-    const dateA = new Date(a.created_at || 0);
-    const dateB = new Date(b.created_at || 0);
+    // On essaie d'abord camelCase, puis snake_case
+    const dateA = new Date(a.createdAt || a.created_at || 0);
+    const dateB = new Date(b.createdAt || b.created_at || 0);
     return dateSortAsc.value ? dateA - dateB : dateB - dateA;
   });
-  dateSortAsc.value = !dateSortAsc.value; // Inverse à chaque clic
+  dateSortAsc.value = !dateSortAsc.value;
+  // Recharge tout ou, au moins, plus de fichiers pour voir le tri
   visibleFiles.value = [];
   currentIndex = 0;
+  // Pour debug, vous pouvez temporairement :
+  // BATCH_SIZE = audioFiles.value.length 
+  // ou remplacer loadMore() par :
+  // visibleFiles.value = [...audioFiles.value];
   loadMore();
 }
 
