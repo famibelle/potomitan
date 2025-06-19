@@ -335,13 +335,15 @@ function sortByStars() {
   loadMore();
 }
 
+const dateSortAsc = ref(false); // État pour l'ordre croissant/décroissant
+
 function sortByDate() {
-  // Trie décroissant par date de création (created_at)
   audioFiles.value.sort((a, b) => {
     const dateA = new Date(a.created_at || 0);
     const dateB = new Date(b.created_at || 0);
-    return dateB - dateA; // Tri décroissant
+    return dateSortAsc.value ? dateA - dateB : dateB - dateA;
   });
+  dateSortAsc.value = !dateSortAsc.value; // Inverse à chaque clic
   visibleFiles.value = [];
   currentIndex = 0;
   loadMore();
