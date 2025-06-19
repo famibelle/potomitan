@@ -158,8 +158,6 @@
       </span>      
       
       <div class="nav-btn-group">
-        <button @click="sortByLikes" class="nav-btn" title="Trier par nombre de likes">👍🏿</button>
-        <button @click="sortByDislikes" class="nav-btn" title="Trier par nombre de dislikes">👎🏿</button>
         <button @click="sortByStars" class="nav-btn" title="Trier par nombre d'étoiles (cliquer à nouveau pour inverser)">⭐</button>
         <button @click="sortByDate" class="nav-btn" title="Trier par date de création">🆕</button>
         <button class="nav-btn" title="Notifications" @click="toggleNotifications">
@@ -168,9 +166,9 @@
         <button 
           @click="toggleLikeDislike" 
           class="nav-btn" 
-          :title="likeDislikeState.value === 'like' ? 'Trier par likes' : 'Trier par dislikes'"
+          :title="likeDislikeState === 'like' ? 'Trier par likes' : 'Trier par dislikes'"
         >
-          {{ likeDislikeState.value === 'like' ? '👍' : '👎' }}
+          {{ likeDislikeState === 'like' ? '👍🏿' : '👎🏿' }}
         </button>
       </div>
     </footer>
