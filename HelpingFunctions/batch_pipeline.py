@@ -10,12 +10,15 @@ from dotenv import load_dotenv
 # Importer tes fonctions existantes
 from batch_vocal_extract_demucs import extract_vocals
 from batch_diarization import load_pipeline_diarization, detect_file_type, extract_audio, diarize_audio
-from batch_transcribe import main as transcribe_main
+import batch_transcribe   # Remplace "from batch_transcribe import main as transcribe_main"
 from batch_remove_short_wav import delete_short_audio_files
 
 load_dotenv()
-
 DATABASE_URL = os.getenv("DATABASE_URL")
+
+# Charger le modèle Whisper et l'injecter dans le module batch_transcribe
+model = whisper.load_model("large-v3")
+batch_transcribe.model = model
 
 def insert_transcription(conn, name, transcription, timestamp, author):
     with conn.cursor() as cur:
@@ -56,7 +59,8 @@ def pipeline(audio_file, temp_dir, diarization_model_name="pyannote/speaker-diar
     transcriptions = []
     for df in diarized_files:
         output_file = df + ".json"
-        transcribe_main(audio_dir=os.path.dirname(df), output_file=output_file)
+        # Utilisation de batch_transcribe.main() qui va utiliser la variable global model injectée
+        batch_transcribe.main(audio_dir=os.path.dirname(df), output_file=output_file)
         if os.path.exists(output_file):
             with open(output_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
@@ -77,6 +81,5 @@ if __name__ == "__main__":
     parser.add_argument("--output_dir", default="pipeline_tmp", help="Répertoire de destination des fichiers intermédiaires (vocals, diarized, etc.)")
 
     args = parser.parse_args()
-    model = whisper.load_model("large-v3")
 
     pipeline(args.audio_file, args.output_dir)
