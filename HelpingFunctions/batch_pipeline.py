@@ -54,22 +54,31 @@ def pipeline(audio_file, temp_dir, diarization_model_name="pyannote/speaker-diar
     # 3. Suppression des fichiers < 2 secondes
     delete_short_audio_files(diarized_dir, min_duration=2.0)
 
-    # 4. Transcription et update DB
+    # 4. Transcription et update DB immédiat
+    conn = psycopg2.connect(DATABASE_URL)
     diarized_files = [os.path.join(diarized_dir, f) for f in os.listdir(diarized_dir) if f.endswith(".mp3") or f.endswith(".wav")]
-    transcriptions = []
     for df in diarized_files:
         output_file = df + ".json"
-        # Utilisation de batch_transcribe.main() qui va utiliser la variable global model injectée
         batch_transcribe.main(audio_dir=os.path.dirname(df), output_file=output_file)
         if os.path.exists(output_file):
             with open(output_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                transcriptions.extend(data)
-
-    # 5. Update DB
-    conn = psycopg2.connect(DATABASE_URL)
-    for entry in transcriptions:
-        insert_transcription(conn, entry["name"], entry["transcription"], entry.get("timestamp"), entry.get("author", "whisper"))
+                for entry in data:
+                    try:
+                        insert_transcription(
+                            conn,
+                            entry["name"],
+                            entry["transcription"],
+                            entry.get("timestamp"),
+                            entry.get("author", "whisper")
+                        )
+                        print(f"✅ Transcription insérée pour {entry['name']}")
+                    except psycopg2.errors.UniqueViolation as e:
+                        print(f"⚠️ Doublon ignoré pour {entry['name']} : {e}")
+                        conn.rollback()
+                    except Exception as e:
+                        print(f"❌ Erreur inattendue pour {entry['name']} : {e}")
+                        conn.rollback()
     conn.close()
     print("Pipeline terminé.")
 
