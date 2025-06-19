@@ -165,6 +165,13 @@
         <button class="nav-btn" title="Notifications" @click="toggleNotifications">
           🔔 <span class="notification-badge">{{ notificationCount }}</span>
         </button>
+        <button 
+          @click="toggleLikeDislike" 
+          class="nav-btn" 
+          :title="likeDislikeState.value === 'like' ? 'Trier par likes' : 'Trier par dislikes'"
+        >
+          {{ likeDislikeState.value === 'like' ? '👍' : '👎' }}
+        </button>
       </div>
     </footer>
   </div>
@@ -531,6 +538,33 @@ function sortByInteractions() {
     return interactionsSortAsc.value ? ta - tb : tb - ta;
   });
   interactionsSortAsc.value = !interactionsSortAsc.value;
+  visibleFiles.value = [];
+  currentIndex = 0;
+  loadMore();
+}
+
+// État pour alterner entre like et dislike
+const likeDislikeState = ref('like'); // Par défaut, commence par "like"
+
+// Fonction pour alterner entre like et dislike
+function toggleLikeDislike() {
+  likeDislikeState.value = likeDislikeState.value === 'like' ? 'dislike' : 'like';
+
+  // Trier les fichiers en fonction de l'état actuel
+  audioFiles.value.sort((a, b) => {
+    const aLikes = a.likes || 0;
+    const aDislikes = a.dislikes || 0;
+    const bLikes = b.likes || 0;
+    const bDislikes = b.dislikes || 0;
+
+    if (likeDislikeState.value === 'like') {
+      return bLikes - aLikes; // Trier par nombre de likes (descendant)
+    } else {
+      return bDislikes - aDislikes; // Trier par nombre de dislikes (descendant)
+    }
+  });
+
+  // Mettre à jour les fichiers visibles
   visibleFiles.value = [];
   currentIndex = 0;
   loadMore();
