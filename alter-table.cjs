@@ -20,7 +20,8 @@ async function alterTable() {
     //console.log('✅ Colonnes likes et dislikes ajoutées avec succès.');
 
     // Ajout contrainte UNIQUE sur le champ transcription
-    const sqlUnique = `ALTER TABLE transcriptions ADD CONSTRAINT unique_transcription UNIQUE (transcription);`;
+    //const sqlUnique = `ALTER TABLE transcriptions ADD CONSTRAINT unique_transcription UNIQUE (transcription);`;
+    const sqlUnique = `ALTER TABLE transcriptions ADD CONSTRAINT unique_filename UNIQUE (filename);`;
     await pool.query(sqlUnique);
     console.log('✅ Contrainte UNIQUE ajoutée sur le champ transcription.');
   } catch (err) {
