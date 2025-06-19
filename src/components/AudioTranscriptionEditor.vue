@@ -508,6 +508,33 @@ function toggleNotifications() {
     loadNotifications(); // recharge la liste à chaque ouverture du panneau
   }
 }
+
+// État pour alterner l'ordre du tri
+const interactionsSortAsc = ref(false);
+
+// Fonction pour obtenir le timestamp de la dernière interaction
+function getLastInteractionTimestamp(file) {
+  const historyTs = file.history?.map(e => new Date(e.timestamp).getTime()) || [];
+  const notifTs = notifications.value
+    .filter(n => n.fileId === file.id)
+    .map(n => new Date(n.timestamp).getTime());
+  const allTs = [...historyTs, ...notifTs];
+  if (allTs.length) return Math.max(...allTs);
+  return new Date(file.timestamp || file.createdAt || 0).getTime();
+}
+
+// Fonction pour trier par interactions
+function sortByInteractions() {
+  audioFiles.value.sort((a, b) => {
+    const ta = getLastInteractionTimestamp(a);
+    const tb = getLastInteractionTimestamp(b);
+    return interactionsSortAsc.value ? ta - tb : tb - ta;
+  });
+  interactionsSortAsc.value = !interactionsSortAsc.value;
+  visibleFiles.value = [];
+  currentIndex = 0;
+  loadMore();
+}
 </script>
 
 <style scoped>
