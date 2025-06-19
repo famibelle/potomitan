@@ -13,13 +13,21 @@ async function printTableSchema() {
   try {
     const result = await pool.query(`
       SELECT
-        column_name,
-        data_type,
-        is_nullable,
-        column_default
-      FROM information_schema.columns
-      WHERE table_name = 'transcriptions'
-      ORDER BY ordinal_position;
+        c.column_name,
+        c.data_type,
+        c.is_nullable,
+        c.column_default,
+        tc.constraint_type
+      FROM information_schema.columns c
+      LEFT JOIN information_schema.key_column_usage kcu
+        ON c.table_name = kcu.table_name
+        AND c.column_name = kcu.column_name
+        AND c.table_schema = kcu.table_schema
+      LEFT JOIN information_schema.table_constraints tc
+        ON kcu.constraint_name = tc.constraint_name
+        AND kcu.table_schema = tc.table_schema
+      WHERE c.table_name = 'transcriptions'
+      ORDER BY c.ordinal_position;
     `)
 
     console.log('\n📋 Structure de la table "transcriptions":\n')
