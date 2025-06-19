@@ -2,8 +2,16 @@
   <div class="app-container">
     <div class="sticky-header">
       <h2 class="title">Maké an Kréyòl Gwadloupéyen</h2>
-
       <div v-if="successMessage" class="toast">{{ successMessage }}</div>
+      <div class="search-bar">
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="🔎Rechercher ..."
+          class="search-input"
+        />
+      </div>
+
 
       <!-- Navigation rapide (SUPPRIMÉE du header) -->
       <!--
@@ -19,6 +27,7 @@
       </div>
       -->
     </div>
+
 
     <div v-for="file in visibleFiles" :key="file.id" class="row">
       <div class="file-info">
@@ -163,16 +172,40 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount, computed, nextTick, watch } from 'vue'
 
-const audioFiles = ref([])
-const visibleFiles = ref([])
-const successMessage = ref('')
-const BATCH_SIZE = 5
-let currentIndex = 0
+const searchQuery = ref('');
+const audioFiles = ref([]); // tous les fichiers
+
+function getFilteredSource() {
+  if (!searchQuery.value.trim()) return audioFiles.value;
+  const q = searchQuery.value.toLowerCase();
+  return audioFiles.value.filter(f =>
+    (f.transcription || '').toLowerCase().includes(q)
+  );
+}
+
+const visibleFiles = ref([]);
+let currentIndex = 0;
+const BATCH_SIZE = 5;
+
+function loadMore() {
+  const source = getFilteredSource();
+  const nextBatch = source.slice(currentIndex, currentIndex + BATCH_SIZE);
+  visibleFiles.value.push(...nextBatch);
+  currentIndex += BATCH_SIZE;
+}
+
+// Reset visibleFiles et currentIndex à chaque changement de recherche
+watch(searchQuery, () => {
+  visibleFiles.value = [];
+  currentIndex = 0;
+  loadMore();
+});
 
 const textareas = {}
 const audioRefs = {}
 const currentFocusedId = ref(null)
 const showNotifications = ref(false);
+const successMessage = ref('')
 
 const currentIndexDisplay = computed(() => {
   const id = currentFocusedId.value
@@ -182,6 +215,14 @@ const currentIndexDisplay = computed(() => {
 
 const hasPrevious = computed(() => currentIndexDisplay.value > 0)
 const hasNext = computed(() => currentIndexDisplay.value < audioFiles.value.length - 1)
+
+const filteredFiles = computed(() => {
+  if (!searchQuery.value.trim()) return visibleFiles.value
+  const q = searchQuery.value.toLowerCase()
+  return visibleFiles.value.filter(f =>
+    (f.transcription || '').toLowerCase().includes(q)
+  )
+})
 
 function goToPrevious() {
   const prev = audioFiles.value[currentIndexDisplay.value - 1]
@@ -239,12 +280,6 @@ function focusTextarea(id) {
     if (el) el.focus()
     currentFocusedId.value = id
   })
-}
-
-function loadMore() {
-  const nextBatch = audioFiles.value.slice(currentIndex, currentIndex + BATCH_SIZE)
-  visibleFiles.value.push(...nextBatch)
-  currentIndex += BATCH_SIZE
 }
 
 function handleScroll() {
@@ -310,11 +345,13 @@ async function validate(id) {
     }
     if (!file.history) file.history = []
     file.history.push({ transcription: file.transcription, timestamp: new Date().toISOString() })
-    successMessage.value = `✅ Transcription « ${file.name} » validée !`
-    setTimeout(() => (successMessage.value = ''), 3000)
+    // Afficher le toaster une seule fois
+    if (!successMessage.value) {
+      successMessage.value = `✅ Transcription « ${file.name} » validée !`
+      setTimeout(() => (successMessage.value = ''), 3000)
+    }
     await addNotification('transcription', file, { content: file.transcription });
   } catch (err) {
-    console.error(err)
     successMessage.value = `❌ ${err.message}`
     setTimeout(() => (successMessage.value = ''), 4000)
   }
@@ -339,7 +376,8 @@ async function onRatingSelected(file, rating) {
 }
 
 function handleKeydown(e) {
-  if (e.code === 'Space' && document.activeElement.tagName !== 'TEXTAREA') {
+  const tag = document.activeElement.tagName
+  if (e.code === 'Space' && tag !== 'TEXTAREA' && tag !== 'INPUT') {
     e.preventDefault()
     const audio = audioRefs[currentFocusedId.value]
     if (audio) {
@@ -437,11 +475,13 @@ const notificationCount = computed(() => notifications.value.length);
 // Charger les notifications au démarrage
 onMounted(async () => {
   await loadNotifications();
-  const res = await fetch('/api/audio-files')
-  audioFiles.value = await res.json()
-  loadMore()
-  window.addEventListener('scroll', handleScroll, { passive: true })
-  window.addEventListener('keydown', handleKeydown)
+  const res = await fetch('/api/audio-files');
+  audioFiles.value = await res.json();
+  visibleFiles.value = [];
+  currentIndex = 0;
+  loadMore();
+  window.addEventListener('scroll', handleScroll, { passive: true });
+  window.addEventListener('keydown', handleKeydown);
 })
 
 onBeforeUnmount(() => {
@@ -601,6 +641,20 @@ function toggleNotifications() {
   font-weight: bold;
   box-shadow: 0 1px 4px rgba(0,0,0,0.15);
   z-index: 2;
+}
+.search-bar {
+  margin: 1rem 0 2rem; /* Ajoute une marge en bas de 2rem */
+  display: flex;
+  justify-content: center;
+}
+.search-input {
+  width: 100%;
+  max-width: 400px;
+  padding: 0.5rem 1rem;
+  border: none !important; /* Supprime la bordure */
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
 }
 @keyframes fade-in-out { 0%,100% { opacity: 0; } 10%,90% { opacity: 1; } }
 @keyframes slide-in {
