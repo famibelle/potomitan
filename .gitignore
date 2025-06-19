@@ -8,3 +8,5 @@ MP3/
 HelpingFunctions/__pycache__
 pipeline_tmp/
 separated
+public/audio/diarized
+public/audio/vocals
