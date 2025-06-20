@@ -23,7 +23,7 @@ async function alterTable() {
     // const sqlUnique = `ALTER TABLE transcriptions ADD CONSTRAINT unique_transcription UNIQUE (transcription);`;
     // const sqlUnique = `ALTER TABLE transcriptions ADD CONSTRAINT unique_filename UNIQUE (filename);`;
     // const sqlUnique = `ALTER TABLE transcriptions ADD COLUMN created_at TIMESTAMP DEFAULT NOW();`;
-    const sqlUnique = `ALTER TABLE transcriptions DROP CONSTRAINT IF EXISTS unique_filename, DROP CONSTRAINT IF EXISTS unique_trancription, ADD CONSTRAINT uq_filename_transcription UNIQUE (filename, transcription);`;
+    const sqlUnique = `ALTER TABLE transcriptions DROP CONSTRAINT IF EXISTS unique_filename, DROP CONSTRAINT IF EXISTS unique_trancription;`;
     
     await pool.query(sqlUnique);
     console.log('✅ Contrainte UNIQUE ajoutée sur le champ transcription.');
