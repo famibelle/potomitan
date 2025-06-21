@@ -23,13 +23,32 @@ async function dumpTableToJson(tableName) {
        ORDER BY ordinal_position`,
       [tableName]
     );
+
+    // Récupère les contraintes et les colonnes associées
+    const constraintsResult = await pool.query(
+      `SELECT
+         tc.constraint_name,
+         tc.constraint_type,
+         kcu.column_name
+       FROM information_schema.table_constraints tc
+       JOIN information_schema.key_column_usage kcu
+         ON tc.constraint_name = kcu.constraint_name
+         AND tc.table_name = kcu.table_name
+       WHERE tc.table_name = $1
+       ORDER BY tc.constraint_name, kcu.ordinal_position`,
+      [tableName]
+    );
+
     // Récupère les données de la table
     const dataResult = await pool.query(`SELECT * FROM ${tableName}`);
+
     // Prépare l'objet à écrire
     const dump = {
       structure: structureResult.rows,
+      constraints: constraintsResult.rows,
       data: dataResult.rows
     };
+
     // Génère le nom de fichier avec timestamp
     const outputFile = `dump_${tableName}_${getTimestamp()}.json`;
     fs.writeFileSync(outputFile, JSON.stringify(dump, null, 2), 'utf8');
