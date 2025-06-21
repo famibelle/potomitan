@@ -501,9 +501,16 @@ const notificationCount = computed(() => notifications.value.length);
 
 // Charger les notifications au démarrage
 onMounted(async () => {
-  await loadNotifications();
   const res = await fetch('/api/audio-files');
   audioFiles.value = await res.json();
+
+  // Tri par created_at décroissant (plus récent en premier)
+  audioFiles.value.sort((a, b) => {
+    const dateA = new Date(a.createdAt || a.created_at || 0);
+    const dateB = new Date(b.createdAt || b.created_at || 0);
+    return dateB - dateA;
+  });
+
   visibleFiles.value = [];
   currentIndex = 0;
   loadMore();
