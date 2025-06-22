@@ -54,22 +54,38 @@
       ></audio>
       
       <div class="column transcription-col">
-        <!-- Système de notation par étoiles -->
-        <div class="star-rating">
-          <span class="rating-label">Notez la transcription: </span>
-          <span
-            v-for="n in 5"
-            :key="n"
-            class="star"
-            :class="{ filled: n <= file.rating }"
-            @click="onRatingSelected(file, n)"
-            :title="`Donner ${n} étoile${n > 1 ? 's' : ''}`"
-          >
-            {{ n <= file.rating ? '★' : '☆' }}
-          </span>
-        </div>
+      
+      <!-- Sélecteurs pour dimensions -->
+      <div class="field">
+        <label>Langue</label>
+        <select v-model="file.langue_code">
+          <option v-for="l in languages" :key="l.code" :value="l.code">{{ l.libelle }}</option>
+        </select>
+      </div>
 
-        <textarea
+      <div class="field">
+        <label>Méthode</label>
+        <select v-model="file.methode_code">
+          <option v-for="m in methods" :key="m.code" :value="m.code">{{ m.description }}</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Statut</label>
+        <select v-model="file.statut_code">
+          <option v-for="s in statuses" :key="s.code" :value="s.code">{{ s.libelle }}</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Contributeur</label>
+        <select v-model="file.id_contributeur">
+          <option v-for="c in contributors" :key="c.id" :value="c.id">{{ c.nom }}</option>
+        </select>
+      </div>
+
+      <!-- Zone de saisie et bouton Valider -->
+      <textarea
           v-model="file.transcription"
           :class="{ empty: file.transcription === '' }"
           :ref="el => textareas[file.id] = el"
@@ -343,7 +359,7 @@ function sortByDate() {
     // On essaie d'abord camelCase, puis snake_case
     const dateA = new Date(a.createdAt || a.created_at || 0);
     const dateB = new Date(b.createdAt || b.created_at || 0);
-    return dateSortAsc.value ? dateA - dateB : dateB - dateA;
+    return dateB - dateA;
   });
   dateSortAsc.value = !dateSortAsc.value;
   // Recharge tout ou, au moins, plus de fichiers pour voir le tri
@@ -356,13 +372,131 @@ function sortByDate() {
   loadMore();
 }
 
+const languages    = ref([])
+const methods      = ref([])
+const statuses     = ref([])
+const contributors = ref([])
+
+onMounted(async () => {
+  // Chargement des dimensions
+  const [langRes, methRes, statRes, contRes] = await Promise.all([
+    fetch('/api/dim-languages'),
+    fetch('/api/dim-methods'),
+    fetch('/api/dim-statuses'),
+    fetch('/api/contributors')
+  ])
+  languages.value    = await langRes.json()
+  methods.value      = await methRes.json()
+  statuses.value     = await statRes.json()
+  contributors.value = await contRes.json()
+
+  // Chargement initial des fichiers
+  const res = await fetch('/api/audio-files')
+  audioFiles.value = await res.json()
+
+  // Tri par created_at décroissant (plus récent en premier)
+  audioFiles.value.sort((a, b) => {
+    const dateA = new Date(a.createdAt || a.created_at || 0);
+    const dateB = new Date(b.createdAt || b.created_at || 0);
+    return dateB - dateA;
+  });
+
+  visibleFiles.value = [];
+  currentIndex = 0;
+  loadMore();
+  window.addEventListener('scroll', handleScroll, { passive: true });
+  window.addEventListener('keydown', handleKeydown);
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('scroll', handleScroll)
+  window.removeEventListener('keydown', handleKeydown)
+})
+
+function toggleNotifications() {
+  showNotifications.value = !showNotifications.value;
+  if (showNotifications.value) {
+    loadNotifications(); // recharge la liste à chaque ouverture du panneau
+  }
+}
+
+// État pour alterner l'ordre du tri
+const interactionsSortAsc = ref(false);
+
+// Fonction pour obtenir le timestamp de la dernière interaction
+function getLastInteractionTimestamp(file) {
+  const historyTs = file.history?.map(e => new Date(e.timestamp).getTime()) || [];
+  const notifTs = notifications.value
+    .filter(n => n.fileId === file.id)
+    .map(n => new Date(n.timestamp).getTime());
+  const allTs = [...historyTs, ...notifTs];
+  if (allTs.length) return Math.max(...allTs);
+  return new Date(file.timestamp || file.createdAt || 0).getTime();
+}
+
+// Fonction pour trier par interactions
+function sortByInteractions() {
+  audioFiles.value.sort((a, b) => {
+    const ta = getLastInteractionTimestamp(a);
+    const tb = getLastInteractionTimestamp(b);
+    return interactionsSortAsc.value ? ta - tb : tb - ta;
+  });
+  interactionsSortAsc.value = !interactionsSortAsc.value;
+  visibleFiles.value = [];
+  currentIndex = 0;
+  loadMore();
+}
+
+// État pour alterner entre like et dislike
+const likeDislikeState = ref('like'); // Par défaut, commence par "like"
+
+// Fonction pour alterner entre like et dislike
+function toggleLikeDislike() {
+  likeDislikeState.value = likeDislikeState.value === 'like' ? 'dislike' : 'like';
+
+  // Trier les fichiers en fonction de l'état actuel
+  audioFiles.value.sort((a, b) => {
+    const aLikes = a.likes || 0;
+    const aDislikes = a.dislikes || 0;
+    const bLikes = b.likes || 0;
+    const bDislikes = b.dislikes || 0;
+
+    if (likeDislikeState.value === 'like') {
+      return bLikes - aLikes; // Trier par nombre de likes (descendant)
+    } else {
+      return bDislikes - aDislikes; // Trier par nombre de dislikes (descendant)
+    }
+  });
+
+  // Mettre à jour les fichiers visibles
+  visibleFiles.value = [];
+  currentIndex = 0;
+  loadMore();
+}
+
+function toggleOrder() {
+  audioFiles.value.reverse(); // Inverse l'ordre des fichiers
+  visibleFiles.value = [];
+  currentIndex = 0;
+  loadMore(); // Recharge les fichiers visibles
+}
+
 async function validate(id) {
   const file = visibleFiles.value.find(f => f.id === id)
+  const payload = {
+    name: file.name,
+    transcription: file.transcription,
+    langue_code: file.langue_code,
+    methode_code: file.methode_code,
+    statut_code: file.statut_code,
+    id_contributeur: file.id_contributeur
+  }
+  const res = await fetch('/api/save-transcription', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
   try {
-    const res = await fetch('/api/save-transcription', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: file.name, transcription: file.transcription })
-    })
     if (!res.ok) {
       const data = await res.json().catch(() => ({}))
       if (res.status === 409 && data.error && data.error.includes('déjà été proposée')) {
