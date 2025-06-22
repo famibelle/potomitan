@@ -30,45 +30,41 @@ app.use(bodyParser.json({ limit: '5mb' }));
 // Liste les fichiers audio + transcription (avec historique complet)
 app.get('/api/audio-files', async (req, res) => {
   try {
-    // 1) Lire TOUS les fichiers .wav/.mp3 du dossier
-    const diskFiles = fs
-      .readdirSync(AUDIO_DIR)
-      .filter((f) => f.endsWith('.wav') || f.endsWith('.mp3'));
-
-    // 2) Récupérer TOUT l’historique depuis la BDD
-    const result = await pool.query(
-      `SELECT id, filename, transcription, timestamp, rating, likes, dislikes
-       FROM transcriptions
-       ORDER BY timestamp ASC`
-    );
-
-    // 3) Regrouper ces entrées par fichier
-    const historyMap = {};
-    result.rows.forEach(({ id, filename, transcription, timestamp, rating, likes, dislikes }) => {
-      if (!historyMap[filename]) historyMap[filename] = [];
-      historyMap[filename].push({ id, transcription, timestamp, rating, likes, dislikes });
-    });
-
-    // 4) Construire le JSON final : un objet par fichier, même sans historique
-    const files = diskFiles.map((filename, idx) => {
-      const history = historyMap[filename] || [];
-      const latest = history[history.length - 1] || {};
-      return {
-        id: latest.id || idx + 1,
-        name: filename,
-        url: `/audio/${filename}`,
-        transcription: latest.transcription || '',
-        rating: latest.rating || 0,
-        likes: latest.likes || 0,
-        dislikes: latest.dislikes || 0,
-        history,
-      };
-    });
-
-    res.json(files);
+    // On récupère les fichiers audio et, pour chacun, sa dernière transcription (version max)
+    const result = await pool.query(`
+      SELECT
+        fa.id,
+        fa.chemin    AS name,
+        fa.titre     AS title,
+        fa.artiste   AS artist,
+        fa.annee     AS year,
+        fa.commentaire,
+        fa.lyrics,
+        fa.source,
+        fa.likes,
+        fa.dislikes,
+        fa.created_at AS file_created_at,
+        t.texte      AS transcription,
+        t.langue_code,
+        t.methode_code,
+        t.statut_code,
+        t.id_contributeur,
+        t.rating     AS rating,
+        t.created_at AS transcription_created_at
+      FROM fichiers_audio fa
+      LEFT JOIN LATERAL (
+        SELECT *
+        FROM transcription
+        WHERE id_fichier_audio = fa.id
+        ORDER BY version DESC
+        LIMIT 1
+      ) t ON TRUE
+      ORDER BY fa.created_at DESC
+    `)
+    res.json(result.rows)
   } catch (err) {
-    console.error('❌ Erreur /api/audio-files:', err);
-    return res.status(500).json({ error: 'Impossible de lister les fichiers audio' });
+    console.error('❌ Erreur /api/audio-files:', err)
+    res.status(500).json({ error: 'Erreur lors de la récupération des fichiers audio' })
   }
 });
 
@@ -98,7 +94,9 @@ app.post('/api/save-transcription', async (req, res) => {
 
   try {
     await pool.query(
-      `INSERT INTO transcriptions (filename, transcription) VALUES ($1, $2)`,
+      `INSERT INTO transcriptions (filename, transcription)
+       VALUES ($1, $2)
+       ON CONFLICT (filename, transcription) DO NOTHING`,
       [name, transcription]
     );
     res.json({ status: 'ok' });
