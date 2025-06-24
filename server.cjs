@@ -27,89 +27,218 @@ const NOTIF_STATE_PATH = path.join(__dirname, 'notifications-state.json');
 app.use(cors());
 app.use(bodyParser.json({ limit: '5mb' }));
 
-// Liste les fichiers audio + transcription (avec historique complet)
+// Liste les fichiers audio + leur dernière transcription + labels des dimensions
 app.get('/api/audio-files', async (req, res) => {
   try {
-    // On récupère les fichiers audio et, pour chacun, sa dernière transcription (version max)
     const result = await pool.query(`
       SELECT
         fa.id,
-        fa.chemin    AS name,
-        fa.titre     AS title,
-        fa.artiste   AS artist,
-        fa.annee     AS year,
+        fa.chemin       AS name,
+        fa.titre        AS title,
+        fa.artiste      AS artist,
+        fa.annee        AS year,
         fa.commentaire,
         fa.lyrics,
         fa.source,
         fa.likes,
         fa.dislikes,
-        fa.created_at AS file_created_at,
-        t.texte      AS transcription,
-        t.langue_code,
-        t.methode_code,
-        t.statut_code,
+        fa.created_at   AS file_created_at,
+        t.id            AS transcription_id,
+        t.texte         AS transcription,
+        t.rating,
+        t.created_at    AS transcription_created_at,
+        t.version,
+        t.date_creation,
         t.id_contributeur,
-        t.rating     AS rating,
-        t.created_at AS transcription_created_at
+        c.nom           AS contributeur_name,
+        t.langue_code,
+        l.libelle       AS langue,
+        t.methode_code,
+        m.description   AS methode,
+        t.statut_code,
+        s.libelle       AS statut
       FROM fichiers_audio fa
       LEFT JOIN LATERAL (
-        SELECT *
-        FROM transcription
+        SELECT * FROM transcription
         WHERE id_fichier_audio = fa.id
         ORDER BY version DESC
         LIMIT 1
       ) t ON TRUE
+      LEFT JOIN contributeur c
+        ON t.id_contributeur = c.id
+      LEFT JOIN langue l
+        ON t.langue_code = l.code
+      LEFT JOIN methode m
+        ON t.methode_code = m.code
+      LEFT JOIN statut_transcription s
+        ON t.statut_code = s.code
       ORDER BY fa.created_at DESC
-    `)
-    res.json(result.rows)
+    `);
+    res.json(result.rows);
   } catch (err) {
-    console.error('❌ Erreur /api/audio-files:', err)
-    res.status(500).json({ error: 'Erreur lors de la récupération des fichiers audio' })
+    console.error('❌ Erreur /api/audio-files:', err);
+    res.status(500).json({ error: 'Erreur lors de la récupération des fichiers audio' });
   }
 });
 
 // Initialisation de la BDD (création de la table et colonne rating)
 app.get('/api/init-db', async (req, res) => {
   try {
+    // Lookup tables
     await pool.query(`
-      CREATE TABLE IF NOT EXISTS transcriptions (
-        id SERIAL PRIMARY KEY,
-        filename TEXT NOT NULL,
-        transcription TEXT NOT NULL,
-        rating SMALLINT DEFAULT 0 CHECK (rating BETWEEN 0 AND 5),
-        timestamp TIMESTAMPTZ DEFAULT NOW()
-      )
+      CREATE TABLE IF NOT EXISTS langue (
+        code      VARCHAR(5)  PRIMARY KEY,
+        libelle   TEXT        NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS methode (
+        code        VARCHAR(20) PRIMARY KEY,
+        description TEXT
+      );
+      CREATE TABLE IF NOT EXISTS statut_transcription (
+        code      VARCHAR(20) PRIMARY KEY,
+        libelle   TEXT        NOT NULL
+      );
     `);
-    res.send('✅ Table transcriptions initialisée avec succès.');
+
+    // Table FichiersAudio
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS fichiers_audio (
+        id           SERIAL     PRIMARY KEY,
+        chemin       TEXT       NOT NULL UNIQUE,
+        titre        TEXT,
+        artiste      TEXT,
+        annee        SMALLINT,
+        commentaire  TEXT,
+        lyrics       TEXT,
+        source       TEXT,
+        created_at   TIMESTAMP  NOT NULL DEFAULT NOW(),
+        likes        INTEGER    NOT NULL DEFAULT 0,
+        dislikes     INTEGER    NOT NULL DEFAULT 0
+      );
+    `);
+
+    // Table Contributeur
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS contributeur (
+        id                SERIAL    PRIMARY KEY,
+        nom               TEXT      NOT NULL,
+        email             TEXT      UNIQUE,
+        role              TEXT,
+        date_inscription  TIMESTAMP NOT NULL DEFAULT NOW(),
+        actif             BOOLEAN   NOT NULL DEFAULT TRUE
+      );
+    `);
+
+    // Table Transcription
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS transcription (
+        id                  SERIAL      PRIMARY KEY,
+        id_fichier_audio    INTEGER     NOT NULL
+                              REFERENCES fichiers_audio(id)
+                              ON DELETE CASCADE,
+        id_contributeur     INTEGER
+                              REFERENCES contributeur(id),
+        texte               TEXT        NOT NULL,
+        langue_code         VARCHAR(5)
+                              REFERENCES langue(code),
+        date_creation       TIMESTAMP   NOT NULL DEFAULT NOW(),
+        version             INTEGER     NOT NULL DEFAULT 1,
+        statut_code         VARCHAR(20)
+                              REFERENCES statut_transcription(code),
+        methode_code        VARCHAR(20)
+                              REFERENCES methode(code),
+        confiance           NUMERIC(3,2),
+        created_at          TIMESTAMP   NOT NULL DEFAULT NOW(),
+        updated_at          TIMESTAMP,
+        rating              INTEGER
+      );
+      CREATE INDEX IF NOT EXISTS idx_transcription_audio
+        ON transcription(id_fichier_audio);
+      CREATE INDEX IF NOT EXISTS idx_transcription_langue
+        ON transcription(langue_code);
+      CREATE INDEX IF NOT EXISTS idx_transcription_statut
+        ON transcription(statut_code);
+      CREATE INDEX IF NOT EXISTS idx_transcription_methode
+        ON transcription(methode_code);
+      CREATE INDEX IF NOT EXISTS idx_transcription_date
+        ON transcription(created_at);
+    `);
+
+    // Table Notifications
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS notifications (
+        id          SERIAL PRIMARY KEY,
+        type        VARCHAR(20),
+        file_id     INTEGER,
+        file_name   TEXT,
+        content     TEXT,
+        new_rating  INTEGER,
+        timestamp   TIMESTAMP NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    console.log('✅ Schéma de base de données créé ou mis à jour avec succès.');
   } catch (err) {
-    console.error(err);
-    res.status(500).send("❌ Erreur lors de l'initialisation de la table.");
+    console.error('❌ Erreur lors de la création du schéma :', err);
+    process.exit(1);
+  } finally {
+    res.json({ status: 'ok', message: 'Schéma de base de données créé ou mis à jour.' });
   }
 });
 
-// Enregistre une nouvelle transcription (historique)
+// Enregistre une nouvelle transcription
 app.post('/api/save-transcription', async (req, res) => {
-  const { name, transcription } = req.body;
-  if (!name || transcription == null) return res.status(400).send('Champs requis.');
+  const {
+    name,
+    texte,
+    langue_code,
+    methode_code,
+    statut_code,
+    id_contributeur
+  } = req.body;
+  if (!name || texte == null) {
+    return res.status(400).send('Champs `name` et `texte` obligatoires.');
+  }
 
   try {
-    await pool.query(
-      `INSERT INTO transcriptions (filename, transcription)
-       VALUES ($1, $2)
-       ON CONFLICT (filename, transcription) DO NOTHING`,
-      [name, transcription]
+    // 1) Récupère l'id du fichier audio
+    const fileRes = await pool.query(
+      'SELECT id FROM fichiers_audio WHERE chemin = $1',
+      [name]
     );
-    res.json({ status: 'ok' });
-  } catch (err) {
-    console.error(err);
-    if (err.code === '23505') { // violation contrainte UNIQUE
-      return res.status(409).json({ error: 'Cette transcription a déjà été proposée' });
+    if (fileRes.rowCount === 0) {
+      return res.status(404).json({ error: 'Fichier audio introuvable.' });
     }
-    res.status(500).json({ error: 'Erreur lors de l\'enregistrement' });
+    const fileId = fileRes.rows[0].id;
+
+    // 2) Insère la transcription
+    const insertRes = await pool.query(
+      `INSERT INTO transcription
+         (id_fichier_audio,
+          id_contributeur,
+          texte,
+          langue_code,
+          methode_code,
+          statut_code)
+       VALUES ($1,$2,$3,$4,$5,$6)
+       RETURNING id, version, created_at, rating`,
+      [
+        fileId,
+        id_contributeur || null,
+        texte,
+        langue_code || null,
+        methode_code || null,
+        statut_code || null
+      ]
+    );
+    res.json({ status: 'ok', transcription: insertRes.rows[0] });
+  } catch (err) {
+    console.error('❌ Erreur /api/save-transcription:', err);
+    res.status(500).json({ error: 'Erreur lors de l\'enregistrement de la transcription' });
   }
 });
 
-// Enregistre uniquement la note liée à une transcription existante
+// Met à jour la note d’une transcription
 app.post('/api/save-rating/:id', async (req, res) => {
   const id = parseInt(req.params.id, 10);
   const { rating } = req.body;
@@ -118,31 +247,36 @@ app.post('/api/save-rating/:id', async (req, res) => {
   }
 
   try {
-    await pool.query(
-      `UPDATE transcriptions
-         SET rating = $1,
-             timestamp = NOW()
-       WHERE id = $2`,
+    const result = await pool.query(
+      `UPDATE transcription
+         SET rating     = $1,
+             updated_at = NOW()
+       WHERE id = $2
+       RETURNING *`,
       [rating, id]
     );
-    res.json({ status: 'ok' });
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Transcription introuvable.' });
+    }
+    res.json({ status: 'ok', transcription: result.rows[0] });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Erreur lors de l\'enregistrement de la note' });
+    console.error('❌ Erreur /api/save-rating:', err);
+    res.status(500).json({ error: 'Erreur lors de la mise à jour de la note' });
   }
 });
 
+// Like / Dislike sur le fichier audio
 app.post('/api/like', async (req, res) => {
   const { fileId } = req.body;
   try {
     const result = await pool.query(
-      'UPDATE transcriptions SET likes = likes + 1 WHERE id = $1 RETURNING *',
+      'UPDATE fichiers_audio SET likes = likes + 1 WHERE id = $1 RETURNING *',
       [fileId]
     );
-    res.json({ success: true, data: result.rows[0] });
-  } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.json({ success: true, file: result.rows[0] });
+  } catch (err) {
+    console.error('❌ Erreur /api/like:', err);
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -150,13 +284,13 @@ app.post('/api/dislike', async (req, res) => {
   const { fileId } = req.body;
   try {
     const result = await pool.query(
-      'UPDATE transcriptions SET dislikes = dislikes + 1 WHERE id = $1 RETURNING *',
+      'UPDATE fichiers_audio SET dislikes = dislikes + 1 WHERE id = $1 RETURNING *',
       [fileId]
     );
-    res.json({ success: true, data: result.rows[0] });
-  } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.json({ success: true, file: result.rows[0] });
+  } catch (err) {
+    console.error('❌ Erreur /api/dislike:', err);
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -203,6 +337,24 @@ app.post('/api/notifications-state', async (req, res) => {
     console.error('Erreur écriture notifications (DB):', err);
     res.status(500).json({ error: 'Erreur écriture notifications (DB)' });
   }
+});
+
+// Liste des langues, méthodes, statuts et contributeurs (dimensions)
+app.get('/api/dim-languages', async (_, res) => {
+  const { rows } = await pool.query('SELECT code, libelle FROM langue');
+  res.json(rows);
+});
+app.get('/api/dim-methods', async (_, res) => {
+  const { rows } = await pool.query('SELECT code, description FROM methode');
+  res.json(rows);
+});
+app.get('/api/dim-statuses', async (_, res) => {
+  const { rows } = await pool.query('SELECT code, libelle FROM statut_transcription');
+  res.json(rows);
+});
+app.get('/api/contributors', async (_, res) => {
+  const { rows } = await pool.query('SELECT id, nom FROM contributeur');
+  res.json(rows);
 });
 
 // Sert d’abord les fichiers statiques audio
