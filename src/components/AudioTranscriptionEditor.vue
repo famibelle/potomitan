@@ -55,34 +55,7 @@
       
       <div class="column transcription-col">
       
-      <!-- Sélecteurs pour dimensions -->
-      <div class="field">
-        <label>Langue</label>
-        <select v-model="file.langue_code">
-          <option v-for="l in languages" :key="l.code" :value="l.code">{{ l.libelle }}</option>
-        </select>
-      </div>
 
-      <div class="field">
-        <label>Méthode</label>
-        <select v-model="file.methode_code">
-          <option v-for="m in methods" :key="m.code" :value="m.code">{{ m.description }}</option>
-        </select>
-      </div>
-
-      <div class="field">
-        <label>Statut</label>
-        <select v-model="file.statut_code">
-          <option v-for="s in statuses" :key="s.code" :value="s.code">{{ s.libelle }}</option>
-        </select>
-      </div>
-
-      <div class="field">
-        <label>Contributeur</label>
-        <select v-model="file.id_contributeur">
-          <option v-for="c in contributors" :key="c.id" :value="c.id">{{ c.nom }}</option>
-        </select>
-      </div>
 
       <!-- Zone de saisie et bouton Valider -->
       <textarea
@@ -390,10 +363,6 @@ onMounted(async () => {
   statuses.value     = await statRes.json()
   contributors.value = await contRes.json()
 
-  // Chargement initial des fichiers
-  const res = await fetch('/api/audio-files')
-  audioFiles.value = await res.json()
-
   // Tri par created_at décroissant (plus récent en premier)
   audioFiles.value.sort((a, b) => {
     const dateA = new Date(a.createdAt || a.created_at || 0);
@@ -636,8 +605,18 @@ const notificationCount = computed(() => notifications.value.length);
 // Charger les notifications au démarrage
 onMounted(async () => {
   const res = await fetch('/api/audio-files');
-  audioFiles.value = await res.json();
+  if (!res.ok) {
+    console.error('Erreur HTTP', res.status, await res.text());
+    throw new Error(`HTTP ${res.status}`);
+  }
 
+  const data = await res.json();
+  // Génère l'URL de lecture à partir du nom de fichier
+  audioFiles.value = data.map(file => ({
+    ...file,
+    url: `/audio/${file.name}`  
+  }))
+  
   // Tri par created_at décroissant (plus récent en premier)
   audioFiles.value.sort((a, b) => {
     const dateA = new Date(a.createdAt || a.created_at || 0);
@@ -657,46 +636,6 @@ onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleKeydown)
 })
 
-function toggleNotifications() {
-  showNotifications.value = !showNotifications.value;
-  if (showNotifications.value) {
-    loadNotifications(); // recharge la liste à chaque ouverture du panneau
-  }
-}
-
-// État pour alterner l'ordre du tri
-const interactionsSortAsc = ref(false);
-
-// Fonction pour obtenir le timestamp de la dernière interaction
-function getLastInteractionTimestamp(file) {
-  const historyTs = file.history?.map(e => new Date(e.timestamp).getTime()) || [];
-  const notifTs = notifications.value
-    .filter(n => n.fileId === file.id)
-    .map(n => new Date(n.timestamp).getTime());
-  const allTs = [...historyTs, ...notifTs];
-  if (allTs.length) return Math.max(...allTs);
-  return new Date(file.timestamp || file.createdAt || 0).getTime();
-}
-
-// Fonction pour trier par interactions
-function sortByInteractions() {
-  audioFiles.value.sort((a, b) => {
-    const ta = getLastInteractionTimestamp(a);
-    const tb = getLastInteractionTimestamp(b);
-    return interactionsSortAsc.value ? ta - tb : tb - ta;
-  });
-  interactionsSortAsc.value = !interactionsSortAsc.value;
-  visibleFiles.value = [];
-  currentIndex = 0;
-  loadMore();
-}
-
-// État pour alterner entre like et dislike
-const likeDislikeState = ref('like'); // Par défaut, commence par "like"
-
-// Fonction pour alterner entre like et dislike
-function toggleLikeDislike() {
-  likeDislikeState.value = likeDislikeState.value === 'like' ? 'dislike' : 'like';
 
   // Trier les fichiers en fonction de l'état actuel
   audioFiles.value.sort((a, b) => {
@@ -716,14 +655,8 @@ function toggleLikeDislike() {
   visibleFiles.value = [];
   currentIndex = 0;
   loadMore();
-}
 
-function toggleOrder() {
-  audioFiles.value.reverse(); // Inverse l'ordre des fichiers
-  visibleFiles.value = [];
-  currentIndex = 0;
-  loadMore(); // Recharge les fichiers visibles
-}
+
 </script>
 
 <style scoped>
