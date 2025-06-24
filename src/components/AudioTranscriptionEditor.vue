@@ -576,7 +576,7 @@ async function addNotification(type, file, extra = {}) {
     ...extra
   };
   // Ajoute côté client
-  notifications.value.push(notif);
+  // notifications.value.push(notif);
   // Sauvegarde côté serveur (envoie uniquement la dernière notif)
   await fetch('/api/notifications-state', {
     method: 'POST',
