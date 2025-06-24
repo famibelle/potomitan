@@ -61,7 +61,7 @@ app.get('/api/audio-files', async (req, res) => {
       LEFT JOIN LATERAL (
         SELECT * FROM transcription
         WHERE id_fichier_audio = fa.id
-        ORDER BY version DESC
+        ORDER BY created_at DESC   -- <-- on prend la dernière transcription par date
         LIMIT 1
       ) t ON TRUE
       LEFT JOIN contributeur c
@@ -76,7 +76,7 @@ app.get('/api/audio-files', async (req, res) => {
     `);
     res.json(result.rows);
   } catch (err) {
-    console.error('❌ Erreur /api/audio-files:', err);
+    console.error('❌ Erreur /api/audio-files :', err);
     res.status(500).json({ error: 'Erreur lors de la récupération des fichiers audio' });
   }
 });
@@ -190,14 +190,14 @@ app.get('/api/init-db', async (req, res) => {
 app.post('/api/save-transcription', async (req, res) => {
   const {
     name,
-    texte,
+    transcription,      // récupère transcription
     langue_code,
     methode_code,
     statut_code,
     id_contributeur
   } = req.body;
-  if (!name || texte == null) {
-    return res.status(400).send('Champs `name` et `texte` obligatoires.');
+  if (!name || transcription == null) {
+    return res.status(400).send('Champs `name` et `transcription` obligatoires.');
   }
 
   try {
@@ -225,7 +225,7 @@ app.post('/api/save-transcription', async (req, res) => {
       [
         fileId,
         id_contributeur || null,
-        texte,
+        transcription,
         langue_code || null,
         methode_code || null,
         statut_code || null
