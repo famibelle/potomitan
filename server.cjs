@@ -373,19 +373,28 @@ app.get(/.*/, (req, res) => {
  */
 app.post('/api/sync-audio-files', async (req, res) => {
   try {
+    console.log('🔄 Démarrage de la synchronisation des fichiers audio...');
     // Lecture du dossier
     const diskFiles = fs.readdirSync(AUDIO_DIR)
       .filter(f => /\.(mp3|wav)$/i.test(f));
+    console.log(`📂 Fichiers trouvés sur le disque : ${diskFiles.length}`);
 
     // 1) Upsert des fichiers existants sur le disque
+    let upserted = 0;
     for (const name of diskFiles) {
-      await pool.query(
+      const result = await pool.query(
         `INSERT INTO fichiers_audio (chemin)
            VALUES ($1)
-           ON CONFLICT (chemin) DO NOTHING`,
+           ON CONFLICT (chemin) DO NOTHING
+           RETURNING id`,
         [name]
       );
+      if (result.rowCount > 0) {
+        upserted++;
+        console.log(`➕ Ajouté en base : ${name}`);
+      }
     }
+    console.log(`✅ Fichiers ajoutés (nouveaux) : ${upserted}`);
 
     // 2) Suppression des enregistrements obsolètes
     const dbFilesRes = await pool.query(`SELECT chemin FROM fichiers_audio`);
@@ -396,6 +405,10 @@ app.post('/api/sync-audio-files', async (req, res) => {
         `DELETE FROM fichiers_audio WHERE chemin = ANY($1::text[])`,
         [toDelete]
       );
+      console.log(`🗑️ Fichiers supprimés de la base (absents du disque) : ${toDelete.length}`);
+      toDelete.forEach(f => console.log(`   - ${f}`));
+    } else {
+      console.log('🗑️ Aucun fichier à supprimer de la base.');
     }
 
     // 3) S’assurer qu’il y ait au moins une ligne dans transcription par fichier
@@ -406,14 +419,21 @@ app.post('/api/sync-audio-files', async (req, res) => {
         WHERE t.id_fichier_audio = fa.id
       )
     `);
+    let addedTrans = 0;
     for (const { id } of missingRes.rows) {
       await pool.query(
         `INSERT INTO transcription (id_fichier_audio, texte, date_creation)
          VALUES ($1, '', NOW())`,
         [id]
       );
+      addedTrans++;
+      console.log(`📝 Transcription vide ajoutée pour fichier id=${id}`);
+    }
+    if (addedTrans === 0) {
+      console.log('📝 Toutes les transcriptions sont déjà présentes.');
     }
 
+    console.log('✅ Synchronisation terminée.');
     res.json({
       status: 'ok',
       synced: diskFiles.length,
