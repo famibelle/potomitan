@@ -190,7 +190,7 @@ app.get('/api/init-db', async (req, res) => {
 app.post('/api/save-transcription', async (req, res) => {
   const {
     name,
-    transcription,      // récupère transcription
+    transcription,
     langue_code,
     methode_code,
     statut_code,
@@ -202,39 +202,45 @@ app.post('/api/save-transcription', async (req, res) => {
 
   try {
     // 1) Récupère l'id du fichier audio
-    const fileRes = await pool.query(
+    const f = await pool.query(
       'SELECT id FROM fichiers_audio WHERE chemin = $1',
       [name]
     );
-    if (fileRes.rowCount === 0) {
-      return res.status(404).json({ error: 'Fichier audio introuvable.' });
+    if (f.rowCount === 0) {
+      return res.status(404).send('Fichier audio introuvable');
     }
-    const fileId = fileRes.rows[0].id;
+    const fileId = f.rows[0].id;
 
-    // 2) Insère la transcription
-    const insertRes = await pool.query(
+    // 2) Calcule la prochaine version
+    const v = await pool.query(
+      'SELECT MAX(version) AS maxv FROM transcription WHERE id_fichier_audio = $1',
+      [fileId]
+    );
+    const nextVersion = (v.rows[0].maxv || 0) + 1;
+
+    // 3) Insère la nouvelle transcription
+    const insert = await pool.query(
       `INSERT INTO transcription
-         (id_fichier_audio,
-          id_contributeur,
-          texte,
-          langue_code,
-          methode_code,
-          statut_code)
-       VALUES ($1,$2,$3,$4,$5,$6)
-       RETURNING id, version, created_at, rating`,
+         (id_fichier_audio, id_contributeur, texte, langue_code, methode_code, statut_code, version, date_creation, created_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,NOW(),NOW())
+       RETURNING id, texte AS transcription, created_at AS timestamp, version`,
       [
         fileId,
-        id_contributeur || null,
+        id_contributeur,
         transcription,
-        langue_code || null,
-        methode_code || null,
-        statut_code || null
+        langue_code,
+        methode_code,
+        statut_code,
+        nextVersion
       ]
     );
-    res.json({ status: 'ok', transcription: insertRes.rows[0] });
+
+    // 4) Renvoie l’enregistrement créé
+    res.json({ status: 'ok', entry: insert.rows[0] });
+
   } catch (err) {
     console.error('❌ Erreur /api/save-transcription:', err);
-    res.status(500).json({ error: 'Erreur lors de l\'enregistrement de la transcription' });
+    res.status(500).json({ error: 'Erreur lors de la sauvegarde de la transcription' });
   }
 });
 
@@ -454,6 +460,30 @@ app.post('/api/sync-audio-files', async (req, res) => {
     if (!res.headersSent) {
       res.status(500).json({ error: err.message });
     }
+  }
+});
+
+// Retourne l'historique des transcriptions pour un fichier audio donné
+app.get('/api/transcription-history/:fileId', async (req, res) => {
+  const fileId = parseInt(req.params.fileId, 10);
+  if (isNaN(fileId)) {
+    return res.status(400).json({ error: 'ID de fichier invalide' });
+  }
+  try {
+    const result = await pool.query(
+      `SELECT
+         texte            AS transcription,
+         created_at       AS timestamp,
+         version
+       FROM transcription
+       WHERE id_fichier_audio = $1
+       ORDER BY created_at ASC`,
+      [fileId]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('❌ Erreur /api/transcription-history:', err);
+    res.status(500).json({ error: 'Erreur lors de la lecture de l’historique' });
   }
 });
 
