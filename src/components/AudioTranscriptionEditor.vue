@@ -82,7 +82,7 @@
           @toggle="e => { if (e.target.open) loadHistory(file) }"
         >
           <summary class="history-title">🕒 Historique des modifications</summary>
-          <!-- n’affiche la liste que si plus d’une version existe -->
+          <!-- on n’affiche la liste que si on a réellement plusieurs versions -->
           <ul v-if="file.history.length > 1">
             <li
               v-for="(entry, idx) in file.history.slice(0, -1).reverse()"
@@ -208,10 +208,16 @@ let currentIndex = 0;
 const BATCH_SIZE = 5;
 
 async function loadMore() {
-  const batch = audioFiles.value.slice(currentIndex, currentIndex + BATCH_SIZE)
+  // applique le filtre de recherche si nécessaire
+  const source = audioFiles.value.filter(f =>
+    (f.transcription || '').toLowerCase().includes(searchQuery.value.toLowerCase())
+  )
+
+  const batch = source.slice(currentIndex, currentIndex + BATCH_SIZE)
   visibleFiles.value.push(...batch)
   currentIndex += BATCH_SIZE
-  // pour chaque fichier nouvellement visible, on charge l’historique depuis la base
+
+  // charge l’historique pour chaque nouveau fichier affiché
   await Promise.all(batch.map(file => loadHistory(file)))
 }
 
