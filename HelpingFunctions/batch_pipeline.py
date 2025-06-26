@@ -1,11 +1,9 @@
 import whisper
 import os
-import sys
-import json
-import logging
 from datetime import datetime
 from tqdm import tqdm
 
+import argparse
 
 import psycopg2
 from dotenv import load_dotenv
@@ -129,12 +127,21 @@ def pipeline(audio_file, temp_dir, diarization_model_name="pyannote/speaker-diar
     print("Pipeline terminé.")
 
 if __name__ == "__main__":
-    import argparse
 
     parser = argparse.ArgumentParser(description="Pipeline audio : extraction, diarization, transcription, update DB")
-    parser.add_argument("audio_file", help="Fichier audio à traiter")
-    parser.add_argument("--output_dir", default="pipeline_tmp", help="Répertoire de destination des fichiers intermédiaires (vocals, diarized, etc.)")
+    parser.add_argument("input_path", help="Fichier audio ou répertoire à traiter")
 
+    parser.add_argument("--output_dir", default="pipeline_tmp", help="Répertoire de destination des fichiers intermédiaires (vocals, diarized, etc.)")
     args = parser.parse_args()
 
-    pipeline(args.audio_file, args.output_dir)
+    # Si on passe un dossier, on traite tous les .mp3/.wav à l'intérieur
+    input_path = args.input_path
+    if os.path.isdir(input_path):
+        files = [fname for fname in sorted(os.listdir(input_path)) if fname.lower().endswith((".mp3", ".wav"))]
+        for fname in tqdm(files, desc="Fichiers à traiter"):
+            if fname.lower().endswith((".mp3", ".wav")):
+                file_path = os.path.join(input_path, fname)
+                print(f"▶️ Traitement de {file_path}")
+                pipeline(file_path, args.output_dir)
+    else:
+        pipeline(input_path, args.output_dir)
