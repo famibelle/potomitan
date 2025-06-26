@@ -32,17 +32,18 @@
     <div v-for="file in visibleFiles" :key="file.id" class="row">
       <div class="file-info">
         <p class="filename">{{ file.name }}</p>
+
+        <!-- Likes / Dislikes existants -->
         <div class="feedback-buttons">
-          <button aria-disabled="false" type="button" class="feedback-button" aria-label="Like" data-state="closed" @click="onLike(file)" title="J'aime ce segment !">
-            👍🏿
-            <span class="feedback-count">{{ file.likes ?? 0 }}</span>
+          <button @click="onLike(file)" class="feedback-button" title="J'aime ce segment">
+            👍🏿 <span class="feedback-count">{{ file.likes ?? 0 }}</span>
           </button>
           |
-          <button aria-disabled="false" type="button" class="feedback-button" aria-label="Dislike" data-state="closed" @click="onDislike(file)" title="Je n'aime pas ce segment">
-            👎🏿
-            <span class="feedback-count">{{ file.dislikes ?? 0 }}</span>
+          <button @click="onDislike(file)" class="feedback-button" title="Je n'aime pas ce segment">
+            👎🏿 <span class="feedback-count">{{ file.dislikes ?? 0 }}</span>
           </button>
         </div>
+
       </div>
 
       <audio
@@ -53,10 +54,8 @@
         @play="currentFocusedId = file.id"
       ></audio>
       
+
       <div class="column transcription-col">
-      
-
-
       <!-- Zone de saisie et bouton Valider -->
       <textarea
           v-model="file.transcription"
@@ -65,16 +64,42 @@
           @focus="currentFocusedId = file.id"
           placeholder="Veuillez entrer la transcription ici..."
         ></textarea>
+      <!-- Ajout de l'affichage du rating en étoiles -->
+        <div class="star-rating">
+          <span
+            v-for="n in 5"
+            :key="n"
+            class="star"
+            :class="{ filled: (file.rating ?? 0) >= n }"
+            @click="onRatingSelected(file, n)"
+          >★</span>
+        </div>
+
         <button @click="validate(file.id)" class="edit-btn">Valider</button>
 
-        <details v-if="file.history && file.history.length > 1" class="history-log">
+        <details
+          class="history-log"
+          @toggle="e => { if (e.target.open) loadHistory(file) }"
+        >
           <summary class="history-title">🕒 Historique des modifications</summary>
-          <ul>
-            <li v-for="(entry, idx) in file.history.slice(0, -1).reverse()" :key="idx" class="history-entry">
-              <span class="timestamp">🗓️ {{ new Date(entry.timestamp).toLocaleString() }}</span><br />
-              <span class="content text-sm italic">{{ entry.transcription }}</span>
+          <!-- n’affiche la liste que si plus d’une version existe -->
+          <ul v-if="file.history.length > 1">
+            <li
+              v-for="(entry, idx) in file.history.slice(0, -1).reverse()"
+              :key="idx"
+              class="history-entry"
+            >
+              <span class="timestamp">
+                🗓️ {{ new Date(entry.timestamp).toLocaleString() }}
+              </span><br />
+              <span class="content text-sm italic">
+                {{ entry.transcription }}
+              </span>
             </li>
           </ul>
+          <div v-else class="history-empty">
+            Aucune modification précédente.
+          </div>
         </details>
       </div>
     </div>
@@ -182,11 +207,12 @@ const visibleFiles = ref([]);
 let currentIndex = 0;
 const BATCH_SIZE = 5;
 
-function loadMore() {
-  const source = getFilteredSource();
-  const nextBatch = source.slice(currentIndex, currentIndex + BATCH_SIZE);
-  visibleFiles.value.push(...nextBatch);
-  currentIndex += BATCH_SIZE;
+async function loadMore() {
+  const batch = audioFiles.value.slice(currentIndex, currentIndex + BATCH_SIZE)
+  visibleFiles.value.push(...batch)
+  currentIndex += BATCH_SIZE
+  // pour chaque fichier nouvellement visible, on charge l’historique depuis la base
+  await Promise.all(batch.map(file => loadHistory(file)))
 }
 
 // Reset visibleFiles et currentIndex à chaque changement de recherche
@@ -324,25 +350,21 @@ function sortByStars() {
   loadMore();
 }
 
-const dateSortAsc = ref(false); // État pour l'ordre croissant/décroissant
+const dateSortAsc = ref(false)  // alterne ascendant / descendant
 
 function sortByDate() {
-  console.log("🆕 sortByDate called, asc =", dateSortAsc.value);
+  // 1) Trie le tableau complet
   audioFiles.value.sort((a, b) => {
-    // On essaie d'abord camelCase, puis snake_case
-    const dateA = new Date(a.createdAt || a.created_at || 0);
-    const dateB = new Date(b.createdAt || b.created_at || 0);
-    return dateB - dateA;
-  });
-  dateSortAsc.value = !dateSortAsc.value;
-  // Recharge tout ou, au moins, plus de fichiers pour voir le tri
-  visibleFiles.value = [];
-  currentIndex = 0;
-  // Pour debug, vous pouvez temporairement :
-  // BATCH_SIZE = audioFiles.value.length 
-  // ou remplacer loadMore() par :
-  // visibleFiles.value = [...audioFiles.value];
-  loadMore();
+    const dateA = new Date(a.file_created_at || 0)
+    const dateB = new Date(b.file_created_at || 0)
+    return dateSortAsc.value ? dateA - dateB : dateB - dateA
+  })
+  dateSortAsc.value = !dateSortAsc.value
+
+  // 2) Recharge le batch initial
+  visibleFiles.value = []      // vide ce qui était à l’écran
+  currentIndex = 0             // remet l’index au début
+  loadMore()                   // affiche les premiers éléments triés
 }
 
 const languages    = ref([])
@@ -487,21 +509,26 @@ async function validate(id) {
   }
 }
 
-async function onRatingSelected(file, rating) {
-  file.rating = rating
+async function onRatingSelected(file, ratingValue) {
   try {
-    const res = await fetch(`/api/save-rating/${file.id}`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ rating })
-    })
-    if (!res.ok) throw new Error('Erreur enregistrement note')
-    successMessage.value = `⭐ Note de ${rating} enregistrée !`
-    setTimeout(() => (successMessage.value = ''), 2000)
-    await addNotification('rating', file, { newRating: rating });
-  } catch (err) {
-    console.error(err)
-    successMessage.value = `❌ ${err.message}`
+    // Appel au nouveau endpoint /api/save-rating/:id en utilisant l'id de la transcription
+    const res = await fetch(`/api/save-rating/${file.transcription_id}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rating: ratingValue })
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(errText || 'Erreur enregistrement note');
+    }
+    // Récupère la transcription mise à jour
+    const { transcription } = await res.json();
+    // Met à jour localement le rating (pour l'affichage et le tri)
+    file.rating = transcription.rating;
+    successMessage.value = `⭐ Note de ${ratingValue} enregistrée !`
     setTimeout(() => (successMessage.value = ''), 3000)
+  } catch (err) {
+    console.error('Erreur enregistrement note', err);
   }
 }
 
@@ -604,31 +631,20 @@ const notificationCount = computed(() => notifications.value.length);
 
 // Charger les notifications au démarrage
 onMounted(async () => {
-  const res = await fetch('/api/audio-files');
-  if (!res.ok) {
-    console.error('Erreur HTTP', res.status, await res.text());
-    throw new Error(`HTTP ${res.status}`);
-  }
-
-  const data = await res.json();
-  // Génère l'URL de lecture à partir du nom de fichier
+  const res = await fetch('/api/audio-files')
+  const data = await res.json()
   audioFiles.value = data.map(file => ({
     ...file,
-    url: `/audio/${file.name}`  
+    url: `/audio/${file.name}`,
+    history: [],            // initialise l’historique
+    historyLoaded: false    // flag pour savoir si on a déjà chargé
   }))
-  
-  // Tri par created_at décroissant (plus récent en premier)
-  audioFiles.value.sort((a, b) => {
-    const dateA = new Date(a.createdAt || a.created_at || 0);
-    const dateB = new Date(b.createdAt || b.created_at || 0);
-    return dateB - dateA;
-  });
-
-  visibleFiles.value = [];
-  currentIndex = 0;
-  loadMore();
-  window.addEventListener('scroll', handleScroll, { passive: true });
-  window.addEventListener('keydown', handleKeydown);
+  visibleFiles.value = []
+  currentIndex = 0
+  await loadMore()
+  await loadNotifications()
+  window.addEventListener('scroll', handleScroll, { passive: true })
+  window.addEventListener('keydown', handleKeydown)
 })
 
 onBeforeUnmount(() => {
@@ -636,7 +652,16 @@ onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleKeydown)
 })
 
-
+async function loadHistory(file) {
+  if (file.historyLoaded) return; // évite de recharger à chaque ouverture
+  const res = await fetch(`/api/transcription-history/${file.id}`);
+  if (res.ok) {
+    file.history = await res.json();
+    file.historyLoaded = true;
+  } else {
+    file.history = [];
+  }
+}
   // Trier les fichiers en fonction de l'état actuel
   audioFiles.value.sort((a, b) => {
     const aLikes = a.likes || 0;
