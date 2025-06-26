@@ -366,4 +366,64 @@ app.get(/.*/, (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
+/**
+ * Synchronise la table `fichiers_audio` avec le contenu du dossier public/audio :
+ * 1) Insert tous les fichiers présents sur le disque et non en base.
+ * 2) Supprime les enregistrements en base dont le fichier n’existe plus.
+ */
+app.post('/api/sync-audio-files', async (req, res) => {
+  try {
+    // Lecture du dossier
+    const diskFiles = fs.readdirSync(AUDIO_DIR)
+      .filter(f => /\.(mp3|wav)$/i.test(f));
+
+    // 1) Upsert des fichiers existants sur le disque
+    for (const name of diskFiles) {
+      await pool.query(
+        `INSERT INTO fichiers_audio (chemin)
+           VALUES ($1)
+           ON CONFLICT (chemin) DO NOTHING`,
+        [name]
+      );
+    }
+
+    // 2) Suppression des enregistrements obsolètes
+    const dbFilesRes = await pool.query(`SELECT chemin FROM fichiers_audio`);
+    const dbFiles = dbFilesRes.rows.map(r => r.chemin);
+    const toDelete = dbFiles.filter(chemin => !diskFiles.includes(chemin));
+    if (toDelete.length) {
+      await pool.query(
+        `DELETE FROM fichiers_audio WHERE chemin = ANY($1::text[])`,
+        [toDelete]
+      );
+    }
+
+    // 3) S’assurer qu’il y ait au moins une ligne dans transcription par fichier
+    const missingRes = await pool.query(`
+      SELECT id FROM fichiers_audio fa
+      WHERE NOT EXISTS (
+        SELECT 1 FROM transcription t
+        WHERE t.id_fichier_audio = fa.id
+      )
+    `);
+    for (const { id } of missingRes.rows) {
+      await pool.query(
+        `INSERT INTO transcription (id_fichier_audio, texte, date_creation)
+         VALUES ($1, '', NOW())`,
+        [id]
+      );
+    }
+
+    res.json({
+      status: 'ok',
+      synced: diskFiles.length,
+      removed: toDelete.length,
+      addedEmptyTranscriptions: missingRes.rows.length
+    });
+  } catch (err) {
+    console.error('❌ Erreur /api/sync-audio-files :', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.listen(PORT, () => console.log(`✅ Serveur Express lancé sur http://localhost:${PORT}`));
