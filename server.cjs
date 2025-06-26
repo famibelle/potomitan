@@ -373,11 +373,18 @@ app.get(/.*/, (req, res) => {
  */
 app.post('/api/sync-audio-files', async (req, res) => {
   try {
-    console.log('🔄 Démarrage de la synchronisation des fichiers audio...');
+    const log = (...args) => {
+      console.log(...args);
+      if (res && !res.headersSent) {
+        res.write(typeof args[0] === 'string' ? args.join(' ') + '\n' : JSON.stringify(args) + '\n');
+      }
+    };
+
+    log('🔄 Démarrage de la synchronisation des fichiers audio...');
     // Lecture du dossier
     const diskFiles = fs.readdirSync(AUDIO_DIR)
       .filter(f => /\.(mp3|wav)$/i.test(f));
-    console.log(`📂 Fichiers trouvés sur le disque : ${diskFiles.length}`);
+    log(`📂 Fichiers trouvés sur le disque : ${diskFiles.length}`);
 
     // 1) Upsert des fichiers existants sur le disque
     let upserted = 0;
@@ -391,10 +398,10 @@ app.post('/api/sync-audio-files', async (req, res) => {
       );
       if (result.rowCount > 0) {
         upserted++;
-        console.log(`➕ Ajouté en base : ${name}`);
+        log(`➕ Ajouté en base : ${name}`);
       }
     }
-    console.log(`✅ Fichiers ajoutés (nouveaux) : ${upserted}`);
+    log(`✅ Fichiers ajoutés (nouveaux) : ${upserted}`);
 
     // 2) Suppression des enregistrements obsolètes
     const dbFilesRes = await pool.query(`SELECT chemin FROM fichiers_audio`);
@@ -405,10 +412,10 @@ app.post('/api/sync-audio-files', async (req, res) => {
         `DELETE FROM fichiers_audio WHERE chemin = ANY($1::text[])`,
         [toDelete]
       );
-      console.log(`🗑️ Fichiers supprimés de la base (absents du disque) : ${toDelete.length}`);
-      toDelete.forEach(f => console.log(`   - ${f}`));
+      log(`🗑️ Fichiers supprimés de la base (absents du disque) : ${toDelete.length}`);
+      toDelete.forEach(f => log(`   - ${f}`));
     } else {
-      console.log('🗑️ Aucun fichier à supprimer de la base.');
+      log('🗑️ Aucun fichier à supprimer de la base.');
     }
 
     // 3) S’assurer qu’il y ait au moins une ligne dans transcription par fichier
@@ -427,22 +434,26 @@ app.post('/api/sync-audio-files', async (req, res) => {
         [id]
       );
       addedTrans++;
-      console.log(`📝 Transcription vide ajoutée pour fichier id=${id}`);
+      log(`📝 Transcription vide ajoutée pour fichier id=${id}`);
     }
     if (addedTrans === 0) {
-      console.log('📝 Toutes les transcriptions sont déjà présentes.');
+      log('📝 Toutes les transcriptions sont déjà présentes.');
     }
 
-    console.log('✅ Synchronisation terminée.');
-    res.json({
-      status: 'ok',
-      synced: diskFiles.length,
-      removed: toDelete.length,
-      addedEmptyTranscriptions: missingRes.rows.length
-    });
+    log('✅ Synchronisation terminée.');
+    if (!res.headersSent) {
+      res.end(JSON.stringify({
+        status: 'ok',
+        synced: diskFiles.length,
+        removed: toDelete.length,
+        addedEmptyTranscriptions: missingRes.rows.length
+      }));
+    }
   } catch (err) {
     console.error('❌ Erreur /api/sync-audio-files :', err);
-    res.status(500).json({ error: err.message });
+    if (!res.headersSent) {
+      res.status(500).json({ error: err.message });
+    }
   }
 });
 
