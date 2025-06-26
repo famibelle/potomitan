@@ -37,27 +37,39 @@ def transcribe_file(file_path):
 def insert_transcription(conn, filename, transcription, timestamp, author, created_at):
     with conn.cursor() as cur:
         try:
-            # Insérer ou récupérer l'ID du fichier dans la table files
+            # 1. Upsert dans fichiers_audio pour obtenir id_fichier_audio
             cur.execute(
                 """
-                INSERT INTO files (filename)
+                INSERT INTO fichiers_audio (chemin)
                 VALUES (%s)
-                ON CONFLICT (filename) DO UPDATE SET filename = EXCLUDED.filename
+                ON CONFLICT (chemin) DO UPDATE SET chemin = EXCLUDED.chemin
                 RETURNING id;
                 """,
                 (filename,)
             )
             file_id = cur.fetchone()[0]
 
-            # Insérer la transcription dans la table transcriptions
+            # 2. Upsert dans contributeur pour obtenir id_contributeur
             cur.execute(
                 """
-                INSERT INTO transcriptions (file_id, text, created_at)
-                VALUES (%s, %s, %s)
-                ON CONFLICT (file_id, text) DO NOTHING;
+                INSERT INTO contributeur (nom)
+                VALUES (%s)
+                ON CONFLICT (nom) DO UPDATE SET nom = EXCLUDED.nom
+                RETURNING id;
                 """,
-                (file_id, transcription, created_at)
+                (author,)
             )
+            contrib_id = cur.fetchone()[0]
+
+            # 3. Insertion dans transcription
+            cur.execute(
+                """
+                INSERT INTO transcription (id_fichier_audio, id_contributeur, texte, date_creation)
+                VALUES (%s, %s, %s, %s);
+                """,
+                (file_id, contrib_id, transcription, created_at)
+            )
+
             conn.commit()
         except Exception as e:
             conn.rollback()
