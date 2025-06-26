@@ -34,17 +34,34 @@ def transcribe_file(file_path):
     print(f"🗣️ Transcription: {entry['transcription']}")
     return [entry]
 
-def insert_transcription(conn, name, transcription, timestamp, author, created_at):
+def insert_transcription(conn, filename, transcription, timestamp, author, created_at):
     with conn.cursor() as cur:
-        cur.execute(
-            """
-            INSERT INTO transcriptions (filename, transcription, timestamp, author, created_at)
-            VALUES (%s, %s, %s, %s, %s)
-            ON CONFLICT (filename) DO NOTHING;
-            """,
-            (name, transcription, timestamp, author, created_at)
-        )
-        conn.commit()
+        try:
+            # Insérer ou récupérer l'ID du fichier dans la table files
+            cur.execute(
+                """
+                INSERT INTO files (filename)
+                VALUES (%s)
+                ON CONFLICT (filename) DO UPDATE SET filename = EXCLUDED.filename
+                RETURNING id;
+                """,
+                (filename,)
+            )
+            file_id = cur.fetchone()[0]
+
+            # Insérer la transcription dans la table transcriptions
+            cur.execute(
+                """
+                INSERT INTO transcriptions (file_id, text, created_at)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (file_id, text) DO NOTHING;
+                """,
+                (file_id, transcription, created_at)
+            )
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
+            print(f"❌ Erreur lors de l'insertion : {e}")
 
 def pipeline(audio_file, temp_dir, diarization_model_name="pyannote/speaker-diarization-3.1"):
     # 1. Extraction vocale
