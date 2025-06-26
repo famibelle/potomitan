@@ -1,0 +1,62 @@
+Table "langue" {
+  "code" VARCHAR(5) [pk]
+  "libelle" TEXT [not null]
+}
+
+Table "methode" {
+  "code" VARCHAR(20) [pk]
+  "description" TEXT
+}
+
+Table "statut_transcription" {
+  "code" VARCHAR(20) [pk]
+  "libelle" TEXT [not null]
+}
+
+Table "fichiers_audio" {
+  "id" SERIAL [pk, increment]
+  "chemin" TEXT [unique, not null]
+  "titre" TEXT
+  "artiste" TEXT
+  "annee" SMALLINT
+  "commentaire" TEXT
+  "lyrics" TEXT
+  "source" TEXT
+  "created_at" TIMESTAMP [not null, default: `NOW()`]
+  "likes" INTEGER [not null, default: 0]
+  "dislikes" INTEGER [not null, default: 0]
+}
+
+Table "contributeur" {
+  "id" SERIAL [pk, increment]
+  "nom" TEXT [not null]
+  "email" TEXT [unique]
+  "role" TEXT
+  "date_inscription" TIMESTAMP [not null, default: `NOW()`]
+  "actif" BOOLEAN [not null, default: TRUE]
+}
+
+Table "transcription" {
+  "id" SERIAL [pk, increment]
+  "id_fichier_audio" INTEGER [not null]
+  "id_contributeur" INTEGER
+  "texte" TEXT [not null]
+  "langue_code" VARCHAR(5)
+  "date_creation" TIMESTAMP [not null, default: `NOW()`]
+  "version" INTEGER [not null, default: 1]
+  "statut_code" VARCHAR(20)
+  "methode_code" VARCHAR(20)
+  "confiance" NUMERIC(3,2)
+  "updated_at" TIMESTAMP
+  "rating" INTEGER
+}
+
+Ref:"fichiers_audio"."id" < "transcription"."id_fichier_audio" [delete: cascade]
+
+Ref:"contributeur"."id" < "transcription"."id_contributeur"
+
+Ref:"langue"."code" < "transcription"."langue_code"
+
+Ref:"statut_transcription"."code" < "transcription"."statut_code"
+
+Ref:"methode"."code" < "transcription"."methode_code"
