@@ -54,6 +54,7 @@ def transcribe_file(file_path):
         "author": "whisper-large-v3"
     }
     print(f"✅ Transcription terminée: {os.path.basename(file_path)}")
+    print(f"🗣️ Transcription terminée pour {entry['name']}: {entry['transcription']}")
     logging.info(f"🗣️ Transcription terminée pour {entry['name']}: {entry['transcription']}")
     return [entry]
 
