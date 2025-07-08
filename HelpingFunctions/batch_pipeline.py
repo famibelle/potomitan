@@ -138,7 +138,7 @@ def pipeline(audio_file, temp_dir, diarization_model_name="pyannote/speaker-diar
         logging.warning("Aucun fichier vocal extrait.")
         return
 
-    # 2. Diarization - Supprimer ce doublon de chargement du modèle
+    # 2. Diarization
     diarized_dir = os.path.join(temp_dir, "diarized")
     os.makedirs(diarized_dir, exist_ok=True)
     print(f"📁 Dossier créé: {diarized_dir}")
@@ -170,6 +170,9 @@ def pipeline(audio_file, temp_dir, diarization_model_name="pyannote/speaker-diar
         gc.collect()
         print("🧹 Mémoire libérée après diarisation")
         logging.info("Mémoire libérée après diarisation")
+        
+        # NOUVEAU: Nettoyer les fichiers vocaux intermédiaires après diarisation
+        cleanup_vocal_files(vocals_dir)
         
     except Exception as e:
         print(f"❌ ERREUR chargement diarization: {e}")
@@ -387,8 +390,36 @@ def process_large_file(audio_file, temp_dir, diarization_model_name="pyannote/sp
         print(f"🧹 Mémoire libérée après traitement du segment {i+1}/{len(segments)}")
         logging.info(f"Mémoire libérée après traitement du segment {i+1}/{len(segments)}")
     
+    # Nettoyer les fichiers segments après traitement
+    cleanup_vocal_files(segments_dir)
+    
     print(f"🏁 TRAITEMENT DU FICHIER VOLUMINEUX TERMINÉ: {audio_file}")
     logging.info(f"Traitement du fichier volumineux terminé : {audio_file}")
+
+# Ajouter une fonction pour nettoyer les fichiers vocaux
+def cleanup_vocal_files(vocals_dir):
+    """Supprime les fichiers vocaux intermédiaires après utilisation"""
+    try:
+        if os.path.exists(vocals_dir):
+            print(f"🧹 Nettoyage des fichiers vocaux dans {vocals_dir}")
+            files_deleted = 0
+            for file in os.listdir(vocals_dir):
+                file_path = os.path.join(vocals_dir, file)
+                if os.path.isfile(file_path):
+                    os.remove(file_path)
+                    files_deleted += 1
+            
+            # Suppression du dossier s'il est vide
+            if not os.listdir(vocals_dir):
+                os.rmdir(vocals_dir)
+                print(f"✅ Dossier {vocals_dir} supprimé ({files_deleted} fichiers)")
+                logging.info(f"Dossier {vocals_dir} supprimé ({files_deleted} fichiers)")
+            else:
+                print(f"✅ {files_deleted} fichiers vocaux supprimés")
+                logging.info(f"{files_deleted} fichiers vocaux supprimés")
+    except Exception as e:
+        print(f"❌ ERREUR lors du nettoyage des fichiers vocaux: {e}")
+        logging.error(f"Erreur lors du nettoyage des fichiers vocaux: {e}")
 
 if __name__ == "__main__":
     print("\n🔄 DÉMARRAGE DU SCRIPT BATCH_PIPELINE.PY")
