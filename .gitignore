@@ -10,3 +10,5 @@ pipeline_tmp/
 separated
 public/audio/diarized
 public/audio/vocals
+pipeline.log
+node_modules/.vue-global-types/vue_99_0_0_0.d.ts
