@@ -2,6 +2,8 @@ import whisper
 import os
 from datetime import datetime
 from tqdm import tqdm
+import time
+from datetime import timedelta
 
 import argparse
 
@@ -105,9 +107,111 @@ def insert_transcription(conn, filename, transcription, timestamp, author, creat
             print(f"❌ ERREUR insertion {filename}: {e}")
             logging.error(f"❌ Erreur lors de l'insertion pour {filename} : {e}")
 
+def format_time(seconds):
+    """Formatte un nombre de secondes en chaîne heures:minutes:secondes"""
+    return str(timedelta(seconds=int(seconds)))
+
+def estimate_pipeline_time(file_size_mb, remaining_files, avg_time_per_mb=None):
+    """Estime le temps restant pour terminer le pipeline en fonction des données historiques"""
+    if avg_time_per_mb is None:
+        # Estimation grossière basée sur des benchmarks (à ajuster selon les performances réelles)
+        # Valeurs indicatives: ~10s/Mo pour l'extraction vocale, ~15s/Mo pour la diarisation, ~5s/Mo pour la transcription
+        avg_time_per_mb = 30
+    
+    total_size_mb = file_size_mb * remaining_files
+    estimated_seconds = total_size_mb * avg_time_per_mb
+    
+    return estimated_seconds, format_time(estimated_seconds)
+
+# Ajouter cette fonction pour la gestion des statistiques de temps
+class PipelineTimer:
+    def __init__(self):
+        self.start_time = time.time()
+        self.step_start_time = self.start_time
+        self.processed_files = 0
+        self.processed_mb = 0
+        self.total_files = 0
+        self.times = {
+            'extraction': [],
+            'diarization': [],
+            'transcription': [],
+            'total_per_file': []
+        }
+    
+    def set_total_files(self, total):
+        """Définir le nombre total de fichiers à traiter"""
+        self.total_files = total
+        
+    def start_step(self, step_name=None):
+        """Démarrer le chronométrage d'une étape"""
+        self.step_start_time = time.time()
+        self.current_step = step_name
+        
+    def end_step(self, step_name=None, file_size_mb=None):
+        """Terminer le chronométrage d'une étape et enregistrer la statistique"""
+        elapsed = time.time() - self.step_start_time
+        if step_name:
+            if step_name in self.times:
+                self.times[step_name].append(elapsed)
+                
+        if file_size_mb:
+            self.processed_mb += file_size_mb
+            
+        return elapsed
+        
+    def end_file(self, file_size_mb):
+        """Enregistrer les statistiques pour un fichier complet"""
+        self.processed_files += 1
+        elapsed = time.time() - self.start_time
+        self.times['total_per_file'].append(elapsed)
+        self.processed_mb += file_size_mb
+        
+        # Calculer le temps moyen par Mo
+        avg_time_per_mb = elapsed / self.processed_mb if self.processed_mb > 0 else 30
+        
+        return avg_time_per_mb
+    
+    def get_estimates(self):
+        """Récupérer les estimations de temps restant"""
+        if self.processed_files == 0 or self.total_files == 0:
+            return "Estimation en attente...", 0
+            
+        elapsed = time.time() - self.start_time
+        avg_time_per_file = elapsed / self.processed_files
+        remaining_files = self.total_files - self.processed_files
+        estimated_remaining = avg_time_per_file * remaining_files
+        
+        return format_time(estimated_remaining), estimated_remaining
+    
+    def get_stats(self):
+        """Afficher des statistiques complètes"""
+        if not self.times['total_per_file']:
+            return "Pas encore de données disponibles"
+            
+        avg_extraction = sum(self.times['extraction']) / len(self.times['extraction']) if self.times['extraction'] else 0
+        avg_diarization = sum(self.times['diarization']) / len(self.times['diarization']) if self.times['diarization'] else 0
+        avg_transcription = sum(self.times['transcription']) / len(self.times['transcription']) if self.times['transcription'] else 0
+        
+        return {
+            "temps_moyen_extraction": format_time(avg_extraction),
+            "temps_moyen_diarisation": format_time(avg_diarization),
+            "temps_moyen_transcription": format_time(avg_transcription),
+            "temps_total_écoulé": format_time(time.time() - self.start_time),
+            "fichiers_traités": self.processed_files,
+            "fichiers_restants": self.total_files - self.processed_files
+        }
+
+# Créer un timer global
+pipeline_timer = PipelineTimer()
+
+# Modifier la fonction pipeline pour utiliser le timer
 def pipeline(audio_file, temp_dir, diarization_model_name="pyannote/speaker-diarization-3.1"):
     print(f"\n🚀 DÉMARRAGE PIPELINE: {audio_file}")
     logging.info(f"Début du pipeline pour le fichier : {audio_file}")
+    
+    # Calculer la taille du fichier pour les statistiques
+    file_size_mb = os.path.getsize(audio_file) / (1024 * 1024)
+    print(f"📊 Taille du fichier : {file_size_mb:.2f} Mo")
     
     # 1. Extraction vocale
     vocals_dir = os.path.join(temp_dir, "vocals")
@@ -116,8 +220,11 @@ def pipeline(audio_file, temp_dir, diarization_model_name="pyannote/speaker-diar
     logging.info(f"Dossier vocals créé : {vocals_dir}")
     try:
         print(f"🎵 Extraction vocale en cours: {audio_file}")
+        # Chronométrer l'extraction vocale
+        pipeline_timer.start_step('extraction')
         extract_vocals(audio_file, vocals_dir)
-        print(f"✅ Extraction vocale terminée: {audio_file}")
+        extraction_time = pipeline_timer.end_step('extraction', file_size_mb)
+        print(f"✅ Extraction vocale terminée: {audio_file} en {format_time(extraction_time)}")
         
         # Libération mémoire après extraction vocale
         import gc
@@ -146,9 +253,9 @@ def pipeline(audio_file, temp_dir, diarization_model_name="pyannote/speaker-diar
     
     try:
         print("🔄 Chargement modèle diarization...")
+        pipeline_timer.start_step('diarization')
         diarization_model = load_pipeline_diarization(diarization_model_name)
         print("✅ Modèle diarization chargé")
-        logging.info("Pipeline de diarization chargé.")
         
         for vf in vocals_files:
             try:
@@ -161,6 +268,9 @@ def pipeline(audio_file, temp_dir, diarization_model_name="pyannote/speaker-diar
             except Exception as e:
                 print(f"❌ ERREUR diarization {os.path.basename(vf)}: {e}")
                 logging.error(f"❌ Erreur lors de la diaration pour {vf} : {e}")
+        
+        diarization_time = pipeline_timer.end_step('diarization', file_size_mb)
+        print(f"⏱️ Temps de diarisation : {format_time(diarization_time)}")
         
         # Libération mémoire après diarisation
         del diarization_model
