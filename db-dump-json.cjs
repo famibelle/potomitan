@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { Pool } = require('pg');
+const archiver = require('archiver'); // Nécessite npm install archiver
 require('dotenv').config({ override: true });
 
 // Liste des tables à dumper
@@ -90,9 +91,48 @@ async function dumpTableToJson(tableName) {
   }
 }
 
+// Fonction pour créer un fichier ZIP avec tous les dumps
+function createZipArchive() {
+  return new Promise((resolve, reject) => {
+    const zipFilePath = path.join(mainDumpDir, `dump_${timestamp}.zip`);
+    const output = fs.createWriteStream(zipFilePath);
+    const archive = archiver('zip', { zlib: { level: 9 } });  // Niveau de compression maximum
+
+    output.on('close', () => {
+      console.log(`📦 Archive ZIP créée avec succès: ${zipFilePath} (${archive.pointer()} octets)`);
+      resolve(zipFilePath);
+    });
+    
+    archive.on('error', (err) => {
+      reject(err);
+    });
+
+    archive.pipe(output);
+    
+    // Ajouter le dossier entier au ZIP
+    archive.directory(dumpDir, false);
+    
+    archive.finalize();
+  });
+}
+
+// Fonction pour supprimer le dossier temporaire après la création du ZIP
+function removeTempFolder() {
+  try {
+    const files = fs.readdirSync(dumpDir);
+    for (const file of files) {
+      fs.unlinkSync(path.join(dumpDir, file));
+    }
+    fs.rmdirSync(dumpDir);
+    console.log(`🧹 Dossier temporaire supprimé: ${dumpDir}`);
+  } catch (err) {
+    console.error(`❌ Erreur lors de la suppression du dossier temporaire: ${err.message}`);
+  }
+}
+
 async function dumpAllTables() {
   console.log(`🚀 Démarrage du dump de ${tablesToDump.length} tables...`);
-  console.log(`📁 Les fichiers seront stockés dans le dossier: ${dumpDir}`);
+  console.log(`📁 Les fichiers seront stockés temporairement dans: ${dumpDir}`);
   
   try {
     const results = [];
@@ -122,6 +162,14 @@ async function dumpAllTables() {
     console.log(`   - Tables traitées : ${tablesToDump.length}`);
     console.log(`   - Succès : ${results.filter(r => r.success).length}`);
     console.log(`   - Échecs : ${results.filter(r => !r.success).length}`);
+    
+    // Crée le fichier ZIP avec tous les dumps
+    const zipPath = await createZipArchive();
+    
+    // Supprimer le dossier temporaire après la création du ZIP
+    removeTempFolder();
+    
+    console.log(`\n✅ Opération terminée! Vous pouvez trouver le dump complet ici: ${zipPath}`);
     
   } catch (err) {
     console.error('❌ Erreur générale lors du dump :', err);
