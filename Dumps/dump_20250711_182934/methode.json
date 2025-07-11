@@ -1,0 +1,30 @@
+{
+  "structure": [
+    {
+      "column_name": "code",
+      "data_type": "character varying"
+    },
+    {
+      "column_name": "description",
+      "data_type": "text"
+    }
+  ],
+  "constraints": [
+    {
+      "constraint_name": "methode_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "column_name": "code"
+    }
+  ],
+  "data": [
+    {
+      "code": "manuel",
+      "description": "Manuelle"
+    },
+    {
+      "code": "automatique",
+      "description": "Automatique"
+    }
+  ],
+  "rowCount": 2
+}

@@ -1,0 +1,48 @@
+{
+  "timestamp": "2025-07-11T16:31:46.960Z",
+  "totalTables": 8,
+  "successCount": 8,
+  "failureCount": 0,
+  "details": [
+    {
+      "table": "contributeur",
+      "success": true,
+      "rowCount": 1
+    },
+    {
+      "table": "fichiers_audio",
+      "success": true,
+      "rowCount": 24412
+    },
+    {
+      "table": "langue",
+      "success": true,
+      "rowCount": 0
+    },
+    {
+      "table": "methode",
+      "success": true,
+      "rowCount": 2
+    },
+    {
+      "table": "notifications",
+      "success": true,
+      "rowCount": 1
+    },
+    {
+      "table": "statut_transcription",
+      "success": true,
+      "rowCount": 3
+    },
+    {
+      "table": "transcription",
+      "success": true,
+      "rowCount": 213940
+    },
+    {
+      "table": "transcriptions",
+      "success": true,
+      "rowCount": 0
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "structure": [
+    {
+      "column_name": "id",
+      "data_type": "integer"
+    },
+    {
+      "column_name": "type",
+      "data_type": "character varying"
+    },
+    {
+      "column_name": "file_id",
+      "data_type": "integer"
+    },
+    {
+      "column_name": "file_name",
+      "data_type": "text"
+    },
+    {
+      "column_name": "content",
+      "data_type": "text"
+    },
+    {
+      "column_name": "new_rating",
+      "data_type": "integer"
+    },
+    {
+      "column_name": "timestamp",
+      "data_type": "timestamp without time zone"
+    }
+  ],
+  "constraints": [
+    {
+      "constraint_name": "notifications_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "column_name": "id"
+    }
+  ],
+  "data": [
+    {
+      "id": 117,
+      "type": "dislike",
+      "file_id": 217214,
+      "file_name": "8b338c3d_vocals.mp3_segment_312606_315964.mp3",
+      "content": null,
+      "new_rating": null,
+      "timestamp": "2025-07-10T13:41:28.281Z"
+    }
+  ],
+  "rowCount": 1
+}
