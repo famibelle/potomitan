@@ -167,7 +167,8 @@
       <span class="nav-status">
         <button @click="shuffleFiles" class="nav-btn" title="Mélanger l'ordre des fichiers">🔀</button>
         <button @click="jumpPrevious" class="nav-btn" title="Sauter 10 segments en arrière">⏮️</button>
-        Segment {{ currentIndexDisplay + 1 }} / {{ audioFiles.length }}
+        Segment {{ currentIndexDisplay + 1 }} / {{ audioFiles.length }} 
+        <span class="duration-info" v-if="totalDuration">(Durée totale: {{ formatDuration(totalDuration) }})</span>
         <button @click="jumpNext" class="nav-btn" title="Sauter 10 segments en avant">⏭️</button>
       </span>      
       
@@ -649,6 +650,7 @@ onMounted(async () => {
   currentIndex = 0
   await loadMore()
   await loadNotifications()
+  await calculateTotalDuration() // Ajout de cette ligne
   window.addEventListener('scroll', handleScroll, { passive: true })
   window.addEventListener('keydown', handleKeydown)
 })
@@ -687,6 +689,37 @@ async function loadHistory(file) {
   currentIndex = 0;
   loadMore();
 
+
+
+// Ajouter après les autres propriétés calculées
+const totalDuration = ref(0); // Pour stocker la durée totale en secondes
+
+// Fonction pour formater les secondes en format lisible HH:MM:SS
+function formatDuration(seconds) {
+  if (!seconds) return '00:00';
+  const hrs = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+  
+  return [
+    hrs > 0 ? String(hrs).padStart(2, '0') : null,
+    String(mins).padStart(2, '0'),
+    String(secs).padStart(2, '0')
+  ].filter(Boolean).join(':');
+}
+
+// Fonction pour calculer la durée totale
+async function calculateTotalDuration() {
+  try {
+    const response = await fetch('/api/audio-stats');
+    if (response.ok) {
+      const stats = await response.json();
+      totalDuration.value = stats.totalDuration || 0;
+    }
+  } catch (error) {
+    console.error('Erreur lors de la récupération des statistiques audio:', error);
+  }
+}  
 
 </script>
 
@@ -849,6 +882,25 @@ async function loadHistory(file) {
   border-radius: 4px;
   font-size: 1rem;
 }
+
+/* Ajouter ces styles */
+.duration-info {
+  font-size: 0.9rem;
+  color: #FFD700; /* Couleur dorée pour faire ressortir l'information */
+  margin-left: 8px;
+  margin-right: 8px;
+  white-space: nowrap;
+}
+
+/* Assurer que le texte s'adapte bien sur mobile */
+@media (max-width: 768px) {
+  .nav-status {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+}
+
 @keyframes fade-in-out { 0%,100% { opacity: 0; } 10%,90% { opacity: 1; } }
 @keyframes slide-in {
   from {
