@@ -4,8 +4,20 @@ const fs = require('fs');
 const path = require('path');
 const cors = require('cors');
 const bodyParser = require('body-parser');
-// Ajouter l'import de music-metadata
-const mm = require('music-metadata');
+// Au début du fichier, déclare parseFile sans l'initialiser
+let parseFile;
+
+// Charge le module de manière asynchrone
+(async () => {
+  try {
+    const mm = await import('music-metadata');
+    parseFile = mm.parseFile;
+    console.log('✅ Module music-metadata chargé avec succès');
+  } catch (err) {
+    console.error('❌ Erreur chargement music-metadata:', err);
+    process.exit(1);
+  }
+})();
 
 // Fonction utilitaire pour formater la durée en heures:minutes:secondes
 function formatDuration(seconds) {
@@ -407,7 +419,7 @@ app.post('/api/sync-audio-files', async (req, res) => {
     for (const file of diskFiles) {
       try {
         const filePath = path.join(AUDIO_DIR, file);
-        const metadata = await mm.parseFile(filePath);
+        const metadata = await parseFile(filePath);
         totalDuration += metadata.format.duration || 0;
       } catch (err) {
         log(`⚠️ Erreur lors de l'extraction de la durée pour ${file}: ${err.message}`);
@@ -512,6 +524,40 @@ app.get('/api/transcription-history/:fileId', async (req, res) => {
   } catch (err) {
     console.error('❌ Erreur /api/transcription-history:', err);
     res.status(500).json({ error: 'Erreur lors de la lecture de l’historique' });
+  }
+});
+
+// Ajouter cette route avant les autres routes statiques
+// Retourne les statistiques sur tous les fichiers audio
+app.get('/api/audio-stats', async (req, res) => {
+  try {
+    // Récupère tous les chemins de fichiers depuis la base de données
+    const fileRes = await pool.query('SELECT chemin FROM fichiers_audio');
+    const files = fileRes.rows.map(r => r.chemin);
+    
+    let totalDuration = 0;
+    
+    // Parcourt tous les fichiers pour calculer la durée totale
+    for (const file of files) {
+      try {
+        const filePath = path.join(AUDIO_DIR, file);
+        if (fs.existsSync(filePath)) {
+          const metadata = await parseFile(filePath);
+          totalDuration += metadata.format.duration || 0;
+        }
+      } catch (err) {
+        console.error(`❌ Erreur extraction métadonnées pour ${file}:`, err.message);
+      }
+    }
+    
+    res.json({ 
+      totalDuration,
+      formattedDuration: formatDuration(totalDuration),
+      fileCount: files.length
+    });
+  } catch (err) {
+    console.error('❌ Erreur /api/audio-stats:', err);
+    res.status(500).json({ error: 'Erreur lors du calcul des statistiques audio' });
   }
 });
 
