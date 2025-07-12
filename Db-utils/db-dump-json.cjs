@@ -37,8 +37,70 @@ if (!fs.existsSync(mainDumpDir)) {
 // Créer un sous-dossier horodaté à l'intérieur de "Dumps"
 const timestamp = getTimestamp();
 const dumpDir = path.join(mainDumpDir, `dump_${timestamp}`);
+const jsonDir = path.join(dumpDir, 'json');
+const sqlDir = path.join(dumpDir, 'sql');
+
 if (!fs.existsSync(dumpDir)) {
   fs.mkdirSync(dumpDir);
+}
+if (!fs.existsSync(jsonDir)) {
+  fs.mkdirSync(jsonDir);
+}
+if (!fs.existsSync(sqlDir)) {
+  fs.mkdirSync(sqlDir);
+}
+
+// Fonction pour générer les instructions SQL CREATE TABLE
+function generateCreateTableSQL(tableName, structure, constraints) {
+  let sql = `-- Table: public.${tableName}\n\n`;
+  
+  sql += `DROP TABLE IF EXISTS public.${tableName};\n\n`;
+  
+  sql += `CREATE TABLE public.${tableName} (\n`;
+  
+  // Colonnes
+  const columns = structure.map(col => {
+    return `    "${col.column_name}" ${col.data_type}`;
+  });
+  
+  // Contraintes primaires
+  const primaryKeys = constraints
+    .filter(con => con.constraint_type === 'PRIMARY KEY')
+    .map(con => con.column_name);
+  
+  if (primaryKeys.length > 0) {
+    columns.push(`    PRIMARY KEY (${primaryKeys.map(pk => `"${pk}"`).join(', ')})`);
+  }
+  
+  sql += columns.join(',\n');
+  sql += '\n);\n\n';
+  
+  return sql;
+}
+
+// Fonction pour générer les instructions SQL INSERT
+function generateInsertSQL(tableName, data) {
+  if (data.length === 0) return '';
+  
+  let sql = `-- Data for table: ${tableName}\n\n`;
+  
+  // Obtenir les noms des colonnes du premier objet
+  const columns = Object.keys(data[0]);
+  
+  for (const row of data) {
+    const values = columns.map(col => {
+      const val = row[col];
+      if (val === null) return 'NULL';
+      if (typeof val === 'string') return `'${val.replace(/'/g, "''")}'`;
+      if (val instanceof Date) return `'${val.toISOString()}'`;
+      return val;
+    });
+    
+    sql += `INSERT INTO public.${tableName} (${columns.map(c => `"${c}"`).join(', ')}) VALUES (${values.join(', ')});\n`;
+  }
+  
+  sql += '\n';
+  return sql;
 }
 
 async function dumpTableToJson(tableName) {
@@ -72,7 +134,7 @@ async function dumpTableToJson(tableName) {
     // Récupère les données de la table
     const dataResult = await pool.query(`SELECT * FROM ${tableName}`);
 
-    // Prépare l'objet à écrire
+    // Prépare l'objet à écrire pour JSON
     const dump = {
       structure: structureResult.rows,
       constraints: constraintsResult.rows,
@@ -80,14 +142,66 @@ async function dumpTableToJson(tableName) {
       rowCount: dataResult.rows.length
     };
 
-    // Génère le nom de fichier dans le dossier de dump
-    const outputFile = path.join(dumpDir, `${tableName}.json`);
-    fs.writeFileSync(outputFile, JSON.stringify(dump, null, 2), 'utf8');
-    console.log(`✅ Dump JSON de la table "${tableName}" écrit dans ${outputFile} (${dataResult.rows.length} lignes)`);
-    return { table: tableName, success: true, rowCount: dataResult.rows.length };
+    // Génère le fichier JSON
+    const jsonOutputFile = path.join(jsonDir, `${tableName}.json`);
+    fs.writeFileSync(jsonOutputFile, JSON.stringify(dump, null, 2), 'utf8');
+    console.log(`✅ Dump JSON de la table "${tableName}" écrit dans ${jsonOutputFile} (${dataResult.rows.length} lignes)`);
+    
+    // Génère le fichier SQL
+    const createTableSQL = generateCreateTableSQL(tableName, structureResult.rows, constraintsResult.rows);
+    const insertSQL = generateInsertSQL(tableName, dataResult.rows);
+    const sqlOutputFile = path.join(sqlDir, `${tableName}.sql`);
+    fs.writeFileSync(sqlOutputFile, createTableSQL + insertSQL, 'utf8');
+    console.log(`✅ Dump SQL de la table "${tableName}" écrit dans ${sqlOutputFile}`);
+    
+    return { 
+      table: tableName, 
+      success: true, 
+      rowCount: dataResult.rows.length,
+      structure: structureResult.rows,
+      constraints: constraintsResult.rows,
+      data: dataResult.rows
+    };
   } catch (err) {
-    console.error(`❌ Erreur lors du dump JSON pour "${tableName}" :`, err.message);
+    console.error(`❌ Erreur lors du dump pour "${tableName}" :`, err.message);
     return { table: tableName, success: false, error: err.message };
+  }
+}
+
+// Générer un fichier SQL complet avec toutes les tables
+async function generateCompleteSQLDump(results) {
+  try {
+    let completeSql = `-- Dump complet PostgreSQL généré le ${new Date().toISOString()}\n\n`;
+    
+    // Ajouter toutes les instructions CREATE TABLE d'abord
+    completeSql += `-- ==========================================\n`;
+    completeSql += `-- STRUCTURE DES TABLES\n`;
+    completeSql += `-- ==========================================\n\n`;
+    
+    for (const result of results.filter(r => r.success)) {
+      const createTableSQL = generateCreateTableSQL(
+        result.table, 
+        result.structure, 
+        result.constraints
+      );
+      completeSql += createTableSQL;
+    }
+    
+    // Puis ajouter toutes les données
+    completeSql += `-- ==========================================\n`;
+    completeSql += `-- DONNÉES DES TABLES\n`;
+    completeSql += `-- ==========================================\n\n`;
+    
+    for (const result of results.filter(r => r.success)) {
+      const insertSQL = generateInsertSQL(result.table, result.data);
+      completeSql += insertSQL;
+    }
+    
+    const completeOutputFile = path.join(sqlDir, `_complete_dump.sql`);
+    fs.writeFileSync(completeOutputFile, completeSql, 'utf8');
+    console.log(`✅ Dump SQL complet écrit dans ${completeOutputFile}`);
+  } catch (err) {
+    console.error(`❌ Erreur lors de la génération du dump SQL complet:`, err.message);
   }
 }
 
@@ -119,11 +233,21 @@ function createZipArchive() {
 // Fonction pour supprimer le dossier temporaire après la création du ZIP
 function removeTempFolder() {
   try {
-    const files = fs.readdirSync(dumpDir);
-    for (const file of files) {
-      fs.unlinkSync(path.join(dumpDir, file));
+    function deleteDir(dir) {
+      if (fs.existsSync(dir)) {
+        fs.readdirSync(dir).forEach((file) => {
+          const curPath = path.join(dir, file);
+          if (fs.lstatSync(curPath).isDirectory()) {
+            deleteDir(curPath);
+          } else {
+            fs.unlinkSync(curPath);
+          }
+        });
+        fs.rmdirSync(dir);
+      }
     }
-    fs.rmdirSync(dumpDir);
+    
+    deleteDir(dumpDir);
     console.log(`🧹 Dossier temporaire supprimé: ${dumpDir}`);
   } catch (err) {
     console.error(`❌ Erreur lors de la suppression du dossier temporaire: ${err.message}`);
@@ -143,13 +267,21 @@ async function dumpAllTables() {
       results.push(result);
     }
     
+    // Génère le dump SQL complet
+    await generateCompleteSQLDump(results);
+    
     // Crée un fichier de résumé
     const summary = {
       timestamp: new Date().toISOString(),
       totalTables: tablesToDump.length,
       successCount: results.filter(r => r.success).length,
       failureCount: results.filter(r => !r.success).length,
-      details: results
+      details: results.map(r => ({
+        table: r.table,
+        success: r.success,
+        rowCount: r.success ? r.rowCount : 0,
+        error: r.error || null
+      }))
     };
     
     fs.writeFileSync(
