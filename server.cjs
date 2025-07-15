@@ -4,6 +4,10 @@ const fs = require('fs');
 const path = require('path');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+<<<<<<< HEAD
+// Ajouter l'import de music-metadata
+const mm = require('music-metadata');
+=======
 // Au début du fichier, déclare parseFile sans l'initialiser
 let parseFile;
 
@@ -18,6 +22,7 @@ let parseFile;
     process.exit(1);
   }
 })();
+>>>>>>> 3ef235db2e0b3a2e83f0760507371d676bca1d73
 
 // Fonction utilitaire pour formater la durée en heures:minutes:secondes
 function formatDuration(seconds) {
@@ -419,7 +424,11 @@ app.post('/api/sync-audio-files', async (req, res) => {
     for (const file of diskFiles) {
       try {
         const filePath = path.join(AUDIO_DIR, file);
+<<<<<<< HEAD
+        const metadata = await mm.parseFile(filePath);
+=======
         const metadata = await parseFile(filePath);
+>>>>>>> 3ef235db2e0b3a2e83f0760507371d676bca1d73
         totalDuration += metadata.format.duration || 0;
       } catch (err) {
         log(`⚠️ Erreur lors de l'extraction de la durée pour ${file}: ${err.message}`);
@@ -527,6 +536,8 @@ app.get('/api/transcription-history/:fileId', async (req, res) => {
   }
 });
 
+<<<<<<< HEAD
+=======
 // Ajouter cette route avant les autres routes statiques
 // Retourne les statistiques sur tous les fichiers audio
 app.get('/api/audio-stats', async (req, res) => {
@@ -561,4 +572,5 @@ app.get('/api/audio-stats', async (req, res) => {
   }
 });
 
+>>>>>>> 3ef235db2e0b3a2e83f0760507371d676bca1d73
 app.listen(PORT, () => console.log(`✅ Serveur Express lancé sur http://localhost:${PORT}`));
