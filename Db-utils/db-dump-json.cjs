@@ -1,5 +1,7 @@
 const fs = require('fs');
+const path = require('path');
 const { Pool } = require('pg');
+const AdmZip = require('adm-zip');
 require('dotenv').config({ override: true });
 
 const pool = new Pool({
@@ -13,8 +15,22 @@ function getTimestamp() {
   return `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
 }
 
-async function dumpTableToJson(tableName) {
+// Tableau des tables à dumper
+const tables = [
+  'contributeur',
+  'fichiers_audio',
+  'langue',
+  'methode',
+  'notifications',
+  'statut_transcription',
+  'transcription',
+  'transcriptions'
+];
+
+async function dumpTableToJson(tableName, tempDir) {
   try {
+    console.log(`📋 Traitement de la table "${tableName}"...`);
+    
     // Récupère la structure de la table (colonnes + types)
     const structureResult = await pool.query(
       `SELECT column_name, data_type 
@@ -49,17 +65,77 @@ async function dumpTableToJson(tableName) {
       data: dataResult.rows
     };
 
-    // Génère le nom de fichier avec timestamp
-    const outputFile = `dump_${tableName}_${getTimestamp()}.json`;
+    // Chemin du fichier de sortie
+    const outputFile = path.join(tempDir, `${tableName}.json`);
     fs.writeFileSync(outputFile, JSON.stringify(dump, null, 2), 'utf8');
-    console.log(`✅ Dump JSON de la table "${tableName}" écrit dans ${outputFile}`);
+    console.log(`✅ Dump JSON de la table "${tableName}" créé`);
+    
+    return outputFile;
   } catch (err) {
-    console.error('❌ Erreur lors du dump JSON :', err);
-    process.exit(1);
-  } finally {
-    await pool.end();
-    process.exit(0);
+    console.error(`❌ Erreur lors du dump de la table "${tableName}" :`, err);
+    return null;
   }
 }
 
-dumpTableToJson('transcriptions');
+async function dumpAllTablesToZip() {
+  const timestamp = getTimestamp();
+  
+  // Créer le répertoire Dumps s'il n'existe pas
+  const dumpsDir = path.join(__dirname, 'Dumps');
+  if (!fs.existsSync(dumpsDir)) {
+    fs.mkdirSync(dumpsDir, { recursive: true });
+    console.log(`📁 Répertoire Dumps créé : ${dumpsDir}`);
+  }
+  
+  // Chemin complet pour le fichier ZIP dans le répertoire Dumps
+  const zipFileName = path.join(dumpsDir, `database_dump_${timestamp}.zip`);
+  const tempDir = path.join(__dirname, `temp_dump_${timestamp}`);
+  
+  try {
+    // Créer un répertoire temporaire
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true });
+    }
+    
+    console.log(`🔄 Début du dump de la base de données...`);
+    console.log(`📂 Le fichier de dump sera enregistré dans : ${zipFileName}`);
+    
+    // Créer un objet ZIP
+    const zip = new AdmZip();
+    
+    // Dumper chaque table dans un fichier JSON
+    for (const table of tables) {
+      const jsonFile = await dumpTableToJson(table, tempDir);
+      if (jsonFile) {
+        // Ajouter le fichier JSON au ZIP
+        zip.addLocalFile(jsonFile);
+      }
+    }
+    
+    // Ajouter un fichier README avec les informations sur le dump
+    const readmeContent = `Database Dump - ${new Date().toISOString()}\n\nContient ${tables.length} tables:\n${tables.join('\n')}`;
+    zip.addFile('README.txt', Buffer.from(readmeContent));
+    
+    // Enregistrer le fichier ZIP
+    zip.writeZip(zipFileName);
+    
+    console.log(`✅ Dump ZIP créé avec succès dans ${zipFileName}`);
+    console.log(`📊 ${tables.length} tables dumpées`);
+    
+    // Nettoyer le répertoire temporaire
+    for (const file of fs.readdirSync(tempDir)) {
+      fs.unlinkSync(path.join(tempDir, file));
+    }
+    fs.rmdirSync(tempDir);
+    
+    console.log(`🧹 Fichiers temporaires nettoyés`);
+  } catch (err) {
+    console.error('❌ Erreur lors de la création du fichier ZIP :', err);
+  } finally {
+    await pool.end();
+    console.log(`🏁 Opération terminée`);
+  }
+}
+
+// Exécuter le dump
+dumpAllTablesToZip();
