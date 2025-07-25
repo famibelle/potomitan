@@ -21,6 +21,8 @@ from mutagen.mp3 import MP3
 from mutagen.id3 import ID3, USLT, ID3NoHeaderError
 
 import torch
+import json
+from pathlib import Path
 
 # Configurer les logs
 logging.basicConfig(
@@ -60,8 +62,48 @@ def transcribe_file(file_path):
     logging.info(f"🗣️ Transcription terminée pour {entry['name']}: {entry['transcription']}")
     return [entry]
 
+def save_insertion_to_json(data, json_file="db_insertions.json"):
+    """
+    Sauvegarde les données d'insertion dans un fichier JSON.
+    Chaque insertion est ajoutée comme un nouvel élément dans le fichier.
+    
+    Args:
+        data: Dictionnaire contenant les données insérées
+        json_file: Chemin vers le fichier JSON de sortie
+    """
+    # Créer le répertoire de sortie si nécessaire
+    json_path = Path(json_file)
+    json_path.parent.mkdir(exist_ok=True, parents=True)
+    
+    # Charger les données existantes si le fichier existe
+    existing_data = []
+    if json_path.exists():
+        try:
+            with open(json_path, 'r', encoding='utf-8') as f:
+                existing_data = json.load(f)
+        except json.JSONDecodeError:
+            # Si le fichier est corrompu, on repart de zéro
+            print(f"⚠️ Fichier JSON corrompu, création d'un nouveau fichier")
+            existing_data = []
+    
+    # Ajouter les nouvelles données
+    existing_data.append(data)
+    
+    # Écrire dans le fichier
+    with open(json_path, 'w', encoding='utf-8') as f:
+        json.dump(existing_data, f, ensure_ascii=False, indent=2)
+    
+    print(f"📝 Insertion enregistrée dans {json_file}")
+    logging.info(f"Insertion enregistrée dans {json_file}")
+
 def insert_transcription(conn, filename, transcription, timestamp, author, created_at):
     with conn.cursor() as cur:
+        # Variables pour stocker les IDs et l'état de l'opération
+        file_id = None
+        contrib_id = None
+        success = False
+        error_message = None
+        
         try:
             print(f"📥 Insertion dans fichiers_audio: {filename}")
             logging.info(f"Insertion dans fichiers_audio pour : {filename}")
@@ -102,11 +144,52 @@ def insert_transcription(conn, filename, transcription, timestamp, author, creat
             conn.commit()
             print(f"✅ Transcription insérée: {filename}")
             logging.info(f"✅ Transcription insérée avec succès pour : {filename}")
+            success = True
+            
         except Exception as e:
             conn.rollback()
             print(f"❌ ERREUR insertion {filename}: {e}")
             logging.error(f"❌ Erreur lors de l'insertion pour {filename} : {e}")
-
+            error_message = str(e)
+            
+        finally:
+            # Toujours sauvegarder dans le JSON, que l'insertion ait réussi ou non
+            insertion_data = {
+                "timestamp": datetime.utcnow().isoformat(),
+                "success": success,
+                "fichier_audio": {
+                    "id": file_id,
+                    "chemin": filename
+                },
+                "contributeur": {
+                    "id": contrib_id,
+                    "nom": author
+                },
+                "transcription": {
+                    "texte": transcription,
+                    "date_creation": created_at
+                }
+            }
+            
+            # Ajouter l'erreur si présente
+            if error_message:
+                insertion_data["error"] = error_message
+            
+            # Créer un dossier 'json_logs' dans le répertoire de sortie
+            json_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "json_logs")
+            os.makedirs(json_dir, exist_ok=True)
+            
+            # Créer un fichier JSON par jour
+            today = datetime.now().strftime("%Y-%m-%d")
+            json_file = os.path.join(json_dir, f"db_insertions_{today}.json")
+            
+            save_insertion_to_json(insertion_data, json_file)
+            
+            if not success:
+                # Re-lever l'exception pour maintenir le comportement original
+                return False
+            
+            return True
 def format_time(seconds):
     """Formatte un nombre de secondes en chaîne heures:minutes:secondes"""
     return str(timedelta(seconds=int(seconds)))
