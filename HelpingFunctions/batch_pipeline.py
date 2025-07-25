@@ -95,6 +95,9 @@ def save_insertion_to_json(data, json_file="db_insertions.json"):
     
     print(f"📝 Insertion enregistrée dans {json_file}")
     logging.info(f"Insertion enregistrée dans {json_file}")
+    # Après avoir écrit le fichier
+    print(f"📝 Fichier JSON mis à jour : {json_path.resolve()}")
+    logging.info(f"Fichier JSON mis à jour : {json_path.resolve()}")
 
 def insert_transcription(conn, filename, transcription, timestamp, author, created_at):
     with conn.cursor() as cur:
@@ -382,7 +385,38 @@ def pipeline(audio_file, temp_dir, diarization_model_name="pyannote/speaker-diar
         print(f"❌ ERREUR suppression fichiers courts: {e}")
         logging.error(f"❌ Erreur lors de la suppression des fichiers courts : {e}")
     
-    # Transcrire et mettre à jour DB fichier par fichier
+    # Transcrire et mettre à jour DB ou JSON
+    diarized_files = [
+        os.path.join(diarized_dir, f)
+        for f in os.listdir(diarized_dir)
+        if f.endswith((".mp3", ".wav"))
+    ]
+    print(f"📊 {len(diarized_files)} segments à traiter")
+
+    # Mode JSON only
+    if NO_DB:
+        print("⚠️ Mode JSON uniquement, pas d'insertion en base")
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")  # Ajouter un timestamp
+        json_output = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            f"all_transcriptions_{timestamp}.json"  # Nom du fichier avec timestamp
+        )
+        for df in tqdm(diarized_files, desc="Enregistrement JSON"):
+            entries = transcribe_file(df)
+            created_at = datetime.fromtimestamp(os.path.getctime(df)).isoformat()
+            for entry in entries:
+                # Préparer la donnée
+                json_record = {
+                    "file": entry["name"],
+                    "transcription": entry["transcription"],
+                    "timestamp": entry["timestamp"],
+                    "author": entry["author"],
+                    "created_at": created_at
+                }
+                save_insertion_to_json(json_record, json_output)
+        return
+
+    # Sinon, connexion et inserts en base (code existant)…
     try:
         print("🔄 Connexion à la base de données...")
         conn = psycopg2.connect(DATABASE_URL, sslmode='require')
@@ -623,8 +657,16 @@ if __name__ == "__main__":
     parser.add_argument("--model", default="large-v3-turbo", 
                         choices=["tiny", "base", "small", "medium", "large-v3", "openai/whisper-large-v3-turbo"], 
                         help="Modèle Whisper à utiliser (par défaut: openai/whisper-large-v3-turbo)")
+    parser.add_argument(
+        "--no-db",
+        action="store_true",
+        help="Ne pas insérer en base, enregistrer toutes les entrées dans un seul JSON"
+    )
     args = parser.parse_args()
-    
+
+    # Flag global pour désactiver les inserts
+    NO_DB = args.no_db
+
     print(f"📂 Entrée: {args.input_path}")
     print(f"📂 Sortie: {args.output_dir}")
     print(f"⏱️ Durée des segments: {args.segment_duration} minutes")
