@@ -1,0 +1,9 @@
+graph TD
+    A[Fichier Multimedia en Kréyol de Guadeloupe] --> B[Split en segments de 15mn max]
+    B --> C[Filtrage sur les Voix Humaines]
+    C --> D[Diarization de l'audio]
+    D --> E[Suppression des segments audio < 5s]
+    E --> F[Transcription avec Whisper Turbo V3: base créole haïtien]
+    F --> G[Ajout de la transcription dans le tag ID3 du MP3]
+    G --> H[Correction de la transcription par un linguiste Kreyol]
+    H --> |potomitan.io/contribuer|I[Transcription en Kreyol de Guadeloupe]

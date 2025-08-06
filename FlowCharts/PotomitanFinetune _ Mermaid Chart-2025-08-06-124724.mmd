@@ -1,0 +1,18 @@
+---
+config:
+  layout: dagre
+---
+flowchart TB
+ subgraph FineTuningLLM["Fine-Tuning de Potomitan"]
+        FT_data["Corpus spécialisé: paires Audio / Texte en kréyol marqué par des linguistes"]
+        FT_baseLLM["LLM de base: Whisper Large Turbo V3"]
+        FT_process["Phase de fine-tuning sur GPU"]
+        FT_specialized["2x LLM spécialisés sur le Kréyol de Guadeloupe. L'un pour la transcription et l'autre pour la synthèse vocale"]
+        TTS["Synthèse Vocale en Kréyol"]
+        STT["Transcription du Kreyol parlé vers le Kréyol écrit"]
+  end
+    FT_data --> FT_process
+    FT_baseLLM --> FT_process
+    FT_process --> FT_specialized
+    FT_specialized --> TTS
+    FT_specialized --> STT
