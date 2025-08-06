@@ -15,6 +15,8 @@ graph TD
     D --> E[Suppression des segments audio < 5s]
     E --> F[Transcription avec Whisper Turbo V3 et créole haïtien]
     F --> G[Ajout de la transcription dans le tag ID3 du MP3]
+    G --> H[Annotation par un linguiste via potomitan.io/contribuer]
+    H --> I[Validation finale + Export Hugging Face Dataset]
 ```
 
 ---
@@ -27,8 +29,9 @@ graph TD
 - ✂️ **Suppression des segments < 2s**  
 - 📝 **Transcription haute qualité** avec `openai/whisper-large-v3-turbo`, en créole haïtien (`ht`)  
 - 🏷️ **Ajout des transcriptions dans les tags ID3** des fichiers `.mp3`  
-- ✍🏽 **Interface d’annotation manuelle** avec [Potomitan (Vue.js)](https://github.com/famibelle/potomitan)  
-- 🗄️ **Sauvegarde JSON ou insertion en base PostgreSQL**
+- ✍🏽 **Interface d’annotation linguistique** [potomitan.io/contribuer](https://potomitan.io/contribuer)  
+- ☁️ **Publication des données validées** sur Hugging Face :  
+  👉🏽 [POTOMITAN/potomitan-gcf-transcription](https://huggingface.co/datasets/POTOMITAN/potomitan-gcf-transcription)
 
 ---
 
@@ -125,23 +128,6 @@ npm run dev
 > L’interface est accessible sur `http://localhost:5173/`  
 > Les données à annoter doivent être placées dans `public/data/` (format `.json` ou `.wav` + `.txt`).
 
-### 📌 Exemple d’usage combiné
-
-1. Utilise la pipeline automatique pour transcrire tous tes fichiers :
-   ```bash
-   python batch_pipeline.py ./data/audio_kreyol --output_dir pipeline_tmp
-   ```
-
-2. Glisse les fichiers `.json` ou `.txt` dans `potomitan/public/data/`
-
-3. Lance l’interface d’annotation pour validation linguistique manuelle
-
-4. Récupère les fichiers corrigés pour :
-   - un retrain modèle
-   - une évaluation qualité
-   - une insertion enrichie en base PostgreSQL
-
----
 
 ## 💾 Base de données (optionnel)
 
@@ -154,15 +140,46 @@ Les erreurs ou doublons sont journalisés dans `json_logs/`.
 
 ---
 
+## 🧪 Utilisation
+
+### 🔹 Pour un seul fichier
+
+```bash
+python batch_pipeline.py path/to/audio.mp3 --output_dir pipeline_tmp
+```
+
+### 🔹 Pour un dossier de fichiers
+
+```bash
+python batch_pipeline.py ./dossier_audios --output_dir pipeline_tmp
+```
+
+### 🔹 Mode JSON uniquement (sans base PostgreSQL)
+
+```bash
+python batch_pipeline.py ./audio --no-db
+```
+
+---
+
 ## 📈 Monitoring & Stats
 
 Chaque exécution de pipeline produit :
 - Un journal `pipeline.log`
 - Des fichiers `db_insertions_YYYY-MM-DD.json`
 - Un suivi des temps d'exécution par étape
-- Optionnel : consommation GPU affichée (si CUDA est disponible)
 
 ---
+## ☁️ Diffusion sur Hugging Face
+
+Les segments validés sont publiés dans le dataset :
+
+🔗 **[POTOMITAN/potomitan-gcf-transcription](https://huggingface.co/datasets/POTOMITAN/potomitan-gcf-transcription)**
+
+Ce corpus contribue à la documentation et au développement d’outils pour les langues créoles, notamment en NLP, TTS, ASR, et lexicographie.
+
+---
+
 
 ## 📎 TODO
 
@@ -182,3 +199,11 @@ MIT © 2025 – Projet audio-linguistique Kréyol
 ## ✊🏽 Contribuer
 
 Pour contribuer, ouvre une _issue_, une _pull request_ ou contacte moi.
+
+
+## 🌐 Liens utiles
+
+- 🔗 Interface d'annotation : https://potomitan.io/contribuer  
+- 📦 Dataset final : https://huggingface.co/datasets/POTOMITAN/potomitan-gcf-transcription  
+- 💻 Code de l'interface locale : [github.com/famibelle/potomitan](https://github.com/famibelle/potomitan)
+
