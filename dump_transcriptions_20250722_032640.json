@@ -1,0 +1,32 @@
+{
+  "structure": [
+    {
+      "column_name": "id",
+      "data_type": "integer"
+    },
+    {
+      "column_name": "filename",
+      "data_type": "text"
+    },
+    {
+      "column_name": "transcription",
+      "data_type": "text"
+    },
+    {
+      "column_name": "rating",
+      "data_type": "smallint"
+    },
+    {
+      "column_name": "timestamp",
+      "data_type": "timestamp with time zone"
+    }
+  ],
+  "constraints": [
+    {
+      "constraint_name": "transcriptions_pkey",
+      "constraint_type": "PRIMARY KEY",
+      "column_name": "id"
+    }
+  ],
+  "data": []
+}
