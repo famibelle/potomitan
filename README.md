@@ -13,10 +13,8 @@ graph TD
     B --> C[Filtrage sur les Voix Humaines]
     C --> D[Diarization de l'audio]
     D --> E[Suppression des segments audio < 5s]
-    E --> F[Transcription avec Whisper Turbo V3 (créole haïtien)]
+    E --> F[Transcription avec Whisper Turbo V3 et créole haïtien]
     F --> G[Ajout de la transcription dans le tag ID3 du MP3]
-    G --> H[Annotation manuelle via Potomitan (VueJS)]
-    H --> I[Export JSON / CSV / SRT]
 ```
 
 ---
@@ -44,7 +42,7 @@ graph TD
 ├── batch_remove_short_wav.py
 ├── pipeline.log               # Fichier de log
 ├── json_logs/                 # Insertion et logs au format JSON
-└── .env                       # Configuration (DATABASE_URL)
+└── .env                       # Configuration (DATABASE_URL, etc.)
 ```
 
 ---
@@ -54,8 +52,8 @@ graph TD
 ### 1. Cloner le dépôt
 
 ```bash
-git clone https://github.com/tonutilisateur/kreol-transcription-pipeline.git
-cd kreol-transcription-pipeline
+git clone https://github.com/famibelle/potomitan.git
+cd potomitan
 ```
 
 ### 2. Installer les dépendances
@@ -114,8 +112,6 @@ Une interface Web construite avec **Vue.js** est disponible dans le dépôt [fam
 
 - 🎧 Écouter les segments audio
 - ✍🏽 Corriger manuellement les transcriptions
-- 🧑🏽‍🏫 Attribuer un locuteur ou un tag de validation
-- 📤 Exporter en format `.json`, `.csv` ou `.srt` selon les besoins
 
 ### 🔧 Déploiement local rapide
 
