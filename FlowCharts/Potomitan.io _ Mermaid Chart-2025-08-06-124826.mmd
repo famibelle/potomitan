@@ -1,0 +1,17 @@
+flowchart LR
+    A["Audio FR"] -- Whisper Turbo v3 --> B["Texte FR"]
+    B -- traduction statique + règles: 85% --> C["Texte GCF"]
+    B -- NLLB: 15% --> C
+    C -- TTS Potimitan --> D["Audio GCF"]
+    F["Texte GCF"] -- Potomitan IA TTS --> E["Audio GCF"]
+    G["Audio GCF"] -- Marquage par des Linguistes --> H["Texte GCF"]
+    H -- Super Computer --> IA_TTS(["IA Potomitan TTS"]) & IA_STT(["IA Potomitan STT"])
+    AudioGCF["AudioGCF"] -- Potomitan IA STT --> TextGCF["TextGCF"]
+
+    STT["STT: Speech To Text"]
+    TTS["TSS: Text To Speech"]
+
+    STT@{ shape: card}
+    TTS@{ shape: card}
+
+
