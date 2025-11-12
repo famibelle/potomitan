@@ -1,3 +1,6 @@
+_ASSETS/
+audio/
+audio_uploaded/
 .potomitan_env
 .venv
 .env
@@ -18,3 +21,4 @@ node_modules/.vue-global-types/vue_99_0_0_0.d.ts
 node_modules/.vue-global-types/vue_99_0_0_0.d.ts
 .gitignore
 dist/
+node_modules/
