@@ -7,7 +7,7 @@
   "scripts": {
     "push-audio": "bash ./push-audio.sh",
     "update-audio": "bash ./update-audio.sh",
-    "extract-transition": "bash ./extract_transition.sh"
+    "extract-transcriptions": "bash ./extract_transcriptions.sh"
   },
   "engines": {
     "node": "20.x"
